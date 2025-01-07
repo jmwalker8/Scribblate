@@ -521,10 +521,15 @@
         databaseURL: "https://scribblate-ce00a-default-rtdb.firebaseio.com"
     };
 
-    // Initialize Firebase
+    // At the top of your script, right after Firebase config
+try {
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const database = getDatabase(app);
+    console.log("Firebase initialized successfully");
+} catch (error) {
+    console.error("Firebase initialization error:", error);
+}
 
     // App state
     let currentUser = null;

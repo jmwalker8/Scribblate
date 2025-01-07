@@ -273,10 +273,14 @@
             databaseURL: "https://scribblate-ce00a-default-rtdb.firebaseio.com"
         };
 
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const database = getDatabase(app);
+        try {
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const database = getDatabase(app);
+    console.log("Firebase initialized successfully");
+} catch (error) {
+    console.error("Firebase initialization error:", error);
+}
 
         // UI Elements
         const googleSignInButton = document.getElementById('googleSignIn');
@@ -307,23 +311,27 @@
             });
         });
 
-        // Google Sign In
         googleSignInButton.addEventListener('click', async () => {
-            try {
-                showLoading(googleSignInButton, googleLoading);
-                hideMessages();
+    console.log("Google sign in clicked");
+    try {
+        showLoading(googleSignInButton, googleLoading);
+        hideMessages();
 
-                const provider = new GoogleAuthProvider();
-                const result = await signInWithPopup(auth, provider);
-                await initializeUserProfile(result.user);
-                window.location.href = 'app.html';
-            } catch (error) {
-                showError(getErrorMessage(error));
-            } finally {
-                hideLoading(googleSignInButton, googleLoading);
-            }
-        });
+        const provider = new GoogleAuthProvider();
+        console.log("Starting Google sign in popup");
+        const result = await signInWithPopup(auth, provider);
+        console.log("Google sign in successful", result.user.email);
+        await initializeUserProfile(result.user);
+        window.location.href = 'app.html';
+    } catch (error) {
+        console.error("Google sign in error:", error);
+        showError(getErrorMessage(error));
+    } finally {
+        hideLoading(googleSignInButton, googleLoading);
+    }
+});
 
+             
         // Email/Password Auth
         authForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -450,9 +458,13 @@
 
         // Check if user is already signed in
         onAuthStateChanged(auth, (user) => {
-            if (user) {
-                window.location.href = 'app.html';
-            }});
+    console.log("Auth state changed:", user ? `User logged in: ${user.email}` : "No user");
+    if (user) {
+        window.location.href = 'app.html';
+    }
+}, error => {
+    console.error("Auth state error:", error);
+});
     </script>
 </body>
 </html>
