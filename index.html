@@ -202,7 +202,7 @@
 </head>
 <body>
     <div class="login-container">
-        <div class="logo">scribblate</div>
+        <div class="logo">Scribblate</div>
         <div class="tagline">Create stories together, 45 seconds at a time</div>
         
         <div class="auth-card">
@@ -248,7 +248,7 @@
     </div>
 
     <script type="module">
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js';
         import { 
             getAuth, 
             signInWithPopup, 
@@ -257,9 +257,9 @@
             signInWithEmailAndPassword,
             sendPasswordResetEmail,
             onAuthStateChanged 
-        } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+        } from 'https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js';
         import { getDatabase, ref, set, get } 
-            from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js';
+            from 'https://www.gstatic.com/firebasejs/11.1.0/firebase-database.js';
 
         // Firebase configuration
         const firebaseConfig = {
@@ -312,22 +312,21 @@
         });
 
         googleSignInButton.addEventListener('click', async () => {
-    console.log("Google sign in clicked");
+    console.log("Starting Google Sign In...");
     try {
-        showLoading(googleSignInButton, googleLoading);
-        hideMessages();
-
         const provider = new GoogleAuthProvider();
-        console.log("Starting Google sign in popup");
         const result = await signInWithPopup(auth, provider);
-        console.log("Google sign in successful", result.user.email);
+        console.log("Sign in successful!");
         await initializeUserProfile(result.user);
         window.location.href = 'app.html';
     } catch (error) {
-        console.error("Google sign in error:", error);
+        console.error("Detailed error:", {
+            code: error.code,
+            message: error.message,
+            email: error.email,
+            credential: error.credential
+        });
         showError(getErrorMessage(error));
-    } finally {
-        hideLoading(googleSignInButton, googleLoading);
     }
 });
 
