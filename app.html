@@ -327,6 +327,71 @@
             color: var(--secondary);
         }
 
+        .contribution {
+    position: relative;
+    padding: 1rem;
+    border-left: 3px solid var(--primary);
+    margin-bottom: 1rem;
+}
+
+.reactions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.reaction-button {
+    background: none;
+    border: none;
+    padding: 0.25rem 0.5rem;
+    border-radius: 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    transition: all 0.2s;
+    color: var(--secondary);
+}
+
+.reaction-button:hover {
+    background: #f3f4f6;
+}
+
+.reaction-button.active {
+    background: var(--primary);
+    color: white;
+}
+
+.reaction-count {
+    font-size: 0.8rem;
+}
+
+.reaction-pop {
+    animation: reactionPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes reactionPop {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.4); }
+    100% { transform: scale(1); }
+}
+
+        .pulse {
+    animation: pulse 2s infinite;
+}
+
+.success-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
         @media (max-width: 768px) {
             .container {
                 flex-direction: column;
@@ -570,6 +635,81 @@
         listenToStoryUpdates();
     }
 
+    function updateStoryPreview(contributions) {
+    const preview = document.querySelector('.story-preview');
+    preview.innerHTML = Object.entries(contributions).map(([id, contribution]) => `
+        <div class="contribution">
+            <div class="contribution-header">
+                <span class="contribution-author">${contribution.userName}</span>
+                <span class="contribution-time">${formatTime(contribution.timestamp)}</span>
+            </div>
+            <p>${contribution.content}</p>
+            <div class="reactions">
+                <button class="reaction-button" onclick="addReaction('${id}', 'heart')">
+                    <i class="fas fa-heart"></i>
+                    <span class="reaction-count">${getReactionCount(contribution, 'heart')}</span>
+                </button>
+                <button class="reaction-button" onclick="addReaction('${id}', 'laugh')">
+                    <i class="fas fa-laugh"></i>
+                    <span class="reaction-count">${getReactionCount(contribution, 'laugh')}</span>
+                </button>
+                <button class="reaction-button" onclick="addReaction('${id}', 'wow')">
+                    <i class="fas fa-surprise"></i>
+                    <span class="reaction-count">${getReactionCount(contribution, 'wow')}</span>
+                </button>
+                <button class="reaction-button" onclick="addReaction('${id}', 'sad')">
+                    <i class="fas fa-sad-tear"></i>
+                    <span class="reaction-count">${getReactionCount(contribution, 'sad')}</span>
+                </button>
+                <button class="reaction-button" onclick="addReaction('${id}', 'thumbsup')">
+                    <i class="fas fa-thumbs-up"></i>
+                    <span class="reaction-count">${getReactionCount(contribution, 'thumbsup')}</span>
+                </button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function getReactionCount(contribution, type) {
+    return contribution.reactions?.[type]?.length || 0;
+}
+
+// Add this to your global window functions
+window.addReaction = async (contributionId, reactionType) => {
+    const reactionRef = ref(database, `stories/${currentStoryId}/contributions/${contributionId}/reactions/${reactionType}`);
+    const snapshot = await get(reactionRef);
+    const reactions = snapshot.val() || [];
+    
+    const userIndex = reactions.indexOf(currentUser.uid);
+    
+    if (userIndex > -1) {
+        // Remove reaction if already added
+        reactions.splice(userIndex, 1);
+    } else {
+        // Add reaction
+        reactions.push(currentUser.uid);
+        
+        // Animate the reaction button
+        const button = document.querySelector(`[onclick="addReaction('${contributionId}', '${reactionType}')"]`);
+        button.classList.add('reaction-pop');
+        setTimeout(() => button.classList.remove('reaction-pop'), 300);
+    }
+    
+    await set(reactionRef, reactions);
+};
+
+// Format timestamp
+function formatTime(timestamp) {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diff = (now - date) / 1000; // difference in seconds
+
+    if (diff < 60) return 'just now';
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+    return date.toLocaleDateString();
+}
+
     function listenToStoryUpdates() {
         const storyRef = ref(database, `stories/${currentStoryId}`);
         onValue(storyRef, (snapshot) => {
@@ -600,52 +740,102 @@
     });
 }
 
-function nextPhase() {
-    clearInterval(timer);
-    const phases = ['brainstorm', 'write', 'wait'];
-    const currentIndex = phases.indexOf(currentPhase);
-    currentPhase = phases[(currentIndex + 1) % phases.length];
+const achievements = {
+    firstStory: {
+        id: 'firstStory',
+        title: 'First Story',
+        description: 'Contributed to your first story',
+        icon: 'fa-book'
+    },
+    speedWriter: {
+        id: 'speedWriter',
+        title: 'Speed Writer',
+        description: 'Wrote over 100 words in one session',
+        icon: 'fa-bolt'
+    },
+    nightOwl: {
+        id: 'nightOwl',
+        title: 'Night Owl',
+        description: 'Wrote between midnight and 4 AM',
+        icon: 'fa-moon'
+    },
+    // Add more achievements
+};
 
-    // Update UI for new phase
-    updatePhaseUI();
+async function checkAchievements(contribution) {
+    const userAchievementsRef = ref(database, `users/${currentUser.uid}/achievements`);
+    const snapshot = await get(userAchievementsRef);
+    const earnedAchievements = snapshot.val() || {};
+
+    const wordCount = contribution.split(/\s+/).length;
+    const hour = new Date().getHours();
+
+    // Check for achievements
+    if (!earnedAchievements.firstStory) {
+        await unlockAchievement('firstStory');
+    }
+
+    if (wordCount > 100 && !earnedAchievements.speedWriter) {
+        await unlockAchievement('speedWriter');
+    }
+
+    if (hour >= 0 && hour < 4 && !earnedAchievements.nightOwl) {
+        await unlockAchievement('nightOwl');
+    }
+}
+
+async function unlockAchievement(achievementId) {
+    const achievement = achievements[achievementId];
+    const userAchievementsRef = ref(database, `users/${currentUser.uid}/achievements/${achievementId}`);
     
-    if (currentPhase !== 'wait') {
-        timeLeft = 45;
-        startTimer();
-    }
-}
-
-function updatePhaseUI() {
-    const elements = {
-        brainstorm: document.querySelector('.brainstorm-content'),
-        writing: document.querySelector('.writing-area'),
-        wait: document.querySelector('.wait-message')
-    };
-
-    // Hide all elements first
-    Object.values(elements).forEach(el => el.style.display = 'none');
-
-    // Show current phase element
-    switch(currentPhase) {
-        case 'brainstorm':
-            elements.brainstorm.style.display = 'block';
-            break;
-        case 'write':
-            elements.writing.style.display = 'block';
-            elements.writing.focus();
-            break;
-        case 'wait':
-            elements.wait.style.display = 'block';
-            startNewStory();
-            break;
-    }
-
-    // Update dots
-    const dots = document.querySelectorAll('.dot');
-    dots.forEach((dot, index) => {
-        dot.classList.toggle('active', index === ['brainstorm', 'write', 'wait'].indexOf(currentPhase));
+    await set(userAchievementsRef, {
+        ...achievement,
+        unlockedAt: Date.now()
     });
+
+    showAchievementNotification(achievement);
 }
+
+function showAchievementNotification(achievement) {
+    const notification = document.createElement('div');
+    notification.className = 'achievement-notification animate__animated animate__slideInRight';
+    notification.innerHTML = `
+        <i class="fas ${achievement.icon}"></i>
+        <div class="achievement-details">
+            <h4>${achievement.title}</h4>
+            <p>${achievement.description}</p>
+        </div>
+    `;
+    
+    document.body.appendChild(notification);
+    setTimeout(() => {
+        notification.classList.replace('animate__slideInRight', 'animate__slideOutRight');
+        setTimeout(() => notification.remove(), 1000);
+    }, 3000);
+}
+
+// Add these missing functions
+function setupCustomPrompts() {
+    const customPrompts = currentUser.customPrompts || {};
+    updateCustomPromptsUI(customPrompts);
+}
+
+function updatePrompt(mood) {
+    const prompts = defaultPrompts[mood] || defaultPrompts.creative;
+    const randomPrompt = prompts[Math.floor(Math.random() * prompts.length)];
+    document.querySelector('.prompt-banner').textContent = randomPrompt;
+}
+
+async function startNewStory() {
+    // Clean up old story
+    if (currentStoryId) {
+        await remove(ref(database, `activeStories/${currentStoryId}`));
+    }
+    
+    // Start new story
+    joinOrCreateStory();
+}
+     
 
 function nextPhase() {
     clearInterval(timer);
@@ -710,9 +900,47 @@ function updatePhaseUI() {
                     photoURL: currentUser.photoURL,
                     lastActive: Date.now()
                 });
+
+                const writingArea = document.querySelector('.writing-area');
+    let typingTimeout;
+
+    writingArea.addEventListener('input', () => {
+        const typingRef = ref(database, `stories/${currentStoryId}/typing/${currentUser.uid}`);
+        set(typingRef, {
+            displayName: currentUser.displayName,
+            timestamp: Date.now()
+        });
+
+        clearTimeout(typingTimeout);
+        typingTimeout = setTimeout(() => {
+            remove(typingRef);
+        }, 2000);
+    });
+
+    // Listen for typing indicators
+    const typingRef = ref(database, `stories/${currentStoryId}/typing`);
+    onValue(typingRef, (snapshot) => {
+        const typing = snapshot.val() || {};
+        updateTypingIndicators(typing);
+    });
             }
         });
     }
+
+    function updateTypingIndicators(typing) {
+    const container = document.getElementById('typingIndicators');
+    const typingUsers = Object.values(typing)
+        .filter(user => user.displayName !== currentUser.displayName);
+
+    if (typingUsers.length > 0) {
+        container.textContent = `${typingUsers.map(u => u.displayName).join(', ')} ${
+            typingUsers.length === 1 ? 'is' : 'are'
+        } thinking...`;
+        container.style.display = 'block';
+    } else {
+        container.style.display = 'none';
+    }
+}
 
     function updateCollaboratorsUI(participants) {
         const container = document.getElementById('activeWriters');
@@ -825,14 +1053,19 @@ function updatePhaseUI() {
     }
 
     function showSuccessAnimation() {
-        const message = document.querySelector('.message');
-        message.innerHTML = `
-            <div class="success-message">
-                <i class="fas fa-check-circle"></i>
-                <span>Great job! Your contribution has been added.</span>
+    const message = document.querySelector('.message');
+    message.innerHTML = `
+        <div class="success-message animate__animated animate__bounceIn">
+            <i class="fas fa-check-circle pulse"></i>
+            <div class="success-details">
+                <span class="animate__animated animate__fadeInUp">Great job!</span>
+                <span class="animate__animated animate__fadeInUp animate__delay-1s">
+                    Your contribution has been added to the story
+                </span>
             </div>
-        `;
-    }
+        </div>
+    `;
+}
 
     // Make functions available globally
     window.showAddPromptModal = () => document.getElementById('addPromptModal').style.display = 'flex';
