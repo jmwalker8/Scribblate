@@ -1,469 +1,489 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Welcome to Scribblate</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+          sans-serif;
+      }
 
-        body {
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: #f5f5f5;
-            padding: 2rem;
-        }
+      body {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f5f5f5;
+        padding: 2rem;
+      }
 
-        .login-container {
-            max-width: 400px;
-            width: 100%;
-            text-align: center;
-        }
+      .login-container {
+        max-width: 400px;
+        width: 100%;
+        text-align: center;
+      }
 
-        .logo {
-            font-size: 3rem;
-            font-weight: bold;
-            color: #333;
-            margin-bottom: 1rem;
-        }
+      .logo {
+        font-size: 3rem;
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 1rem;
+      }
 
-        .tagline {
-            color: #666;
-            margin-bottom: 2rem;
-            font-size: 1.2rem;
-        }
+      .tagline {
+        color: #666;
+        margin-bottom: 2rem;
+        font-size: 1.2rem;
+      }
 
+      .auth-card {
+        background: white;
+        padding: 2rem;
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      .auth-tabs {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 2rem;
+        justify-content: center;
+      }
+
+      .auth-tab {
+        padding: 0.5rem 1rem;
+        border: none;
+        background: none;
+        cursor: pointer;
+        font-size: 1rem;
+        color: #666;
+        border-bottom: 2px solid transparent;
+        transition: all 0.2s;
+      }
+
+      .auth-tab.active {
+        color: #2563eb;
+        border-bottom-color: #2563eb;
+      }
+
+      .input-group {
+        margin-bottom: 1rem;
+        text-align: left;
+      }
+
+      .input-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        color: #666;
+        font-size: 0.9rem;
+      }
+
+      .input-group input {
+        width: 100%;
+        padding: 0.75rem;
+        border: 2px solid #e5e7eb;
+        border-radius: 8px;
+        font-size: 1rem;
+        transition: border-color 0.2s;
+      }
+
+      .input-group input:focus {
+        outline: none;
+        border-color: #2563eb;
+      }
+
+      .auth-button {
+        width: 100%;
+        background: #2563eb;
+        color: white;
+        border: none;
+        padding: 1rem;
+        border-radius: 8px;
+        font-size: 1.1rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+        transition: transform 0.2s, box-shadow 0.2s;
+      }
+
+      .auth-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+      }
+
+      .auth-button.google {
+        background: white;
+        color: #333;
+        border: 2px solid #e5e7eb;
+      }
+
+      .auth-button:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .divider {
+        display: flex;
+        align-items: center;
+        margin: 1.5rem 0;
+        color: #666;
+      }
+
+      .divider::before,
+      .divider::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: #e5e7eb;
+      }
+
+      .divider span {
+        padding: 0 1rem;
+      }
+
+      .error-message {
+        color: #ef4444;
+        margin-top: 1rem;
+        padding: 1rem;
+        background: #fee2e2;
+        border-radius: 8px;
+        display: none;
+        text-align: left;
+      }
+
+      .success-message {
+        color: #059669;
+        margin-top: 1rem;
+        padding: 1rem;
+        background: #d1fae5;
+        border-radius: 8px;
+        display: none;
+      }
+
+      .loading {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 3px solid currentColor;
+        border-radius: 50%;
+        border-top: 3px solid transparent;
+        animation: spin 1s linear infinite;
+        display: none;
+      }
+
+      .forgot-password {
+        color: #2563eb;
+        text-decoration: none;
+        font-size: 0.9rem;
+        display: inline-block;
+        margin-top: 1rem;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      @media (max-width: 480px) {
         .auth-card {
-            background: white;
-            padding: 2rem;
-            border-radius: 12px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+          padding: 1.5rem;
         }
-
-        .auth-tabs {
-            display: flex;
-            gap: 1rem;
-            margin-bottom: 2rem;
-            justify-content: center;
-        }
-
-        .auth-tab {
-            padding: 0.5rem 1rem;
-            border: none;
-            background: none;
-            cursor: pointer;
-            font-size: 1rem;
-            color: #666;
-            border-bottom: 2px solid transparent;
-            transition: all 0.2s;
-        }
-
-        .auth-tab.active {
-            color: #2563eb;
-            border-bottom-color: #2563eb;
-        }
-
-        .input-group {
-            margin-bottom: 1rem;
-            text-align: left;
-        }
-
-        .input-group label {
-            display: block;
-            margin-bottom: 0.5rem;
-            color: #666;
-            font-size: 0.9rem;
-        }
-
-        .input-group input {
-            width: 100%;
-            padding: 0.75rem;
-            border: 2px solid #e5e7eb;
-            border-radius: 8px;
-            font-size: 1rem;
-            transition: border-color 0.2s;
-        }
-
-        .input-group input:focus {
-            outline: none;
-            border-color: #2563eb;
-        }
-
-        .auth-button {
-            width: 100%;
-            background: #2563eb;
-            color: white;
-            border: none;
-            padding: 1rem;
-            border-radius: 8px;
-            font-size: 1.1rem;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.75rem;
-            margin-bottom: 1rem;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-
-        .auth-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
-        }
-
-        .auth-button.google {
-            background: white;
-            color: #333;
-            border: 2px solid #e5e7eb;
-        }
-
-        .auth-button:disabled {
-            opacity: 0.7;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .divider {
-            display: flex;
-            align-items: center;
-            margin: 1.5rem 0;
-            color: #666;
-        }
-
-        .divider::before,
-        .divider::after {
-            content: "";
-            flex: 1;
-            height: 1px;
-            background: #e5e7eb;
-        }
-
-        .divider span {
-            padding: 0 1rem;
-        }
-
-        .error-message {
-            color: #ef4444;
-            margin-top: 1rem;
-            padding: 1rem;
-            background: #fee2e2;
-            border-radius: 8px;
-            display: none;
-            text-align: left;
-        }
-
-        .success-message {
-            color: #059669;
-            margin-top: 1rem;
-            padding: 1rem;
-            background: #d1fae5;
-            border-radius: 8px;
-            display: none;
-        }
-
-        .loading {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid currentColor;
-            border-radius: 50%;
-            border-top: 3px solid transparent;
-            animation: spin 1s linear infinite;
-            display: none;
-        }
-
-        .forgot-password {
-            color: #2563eb;
-            text-decoration: none;
-            font-size: 0.9rem;
-            display: inline-block;
-            margin-top: 1rem;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        @media (max-width: 480px) {
-            .auth-card {
-                padding: 1.5rem;
-            }
-        }
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div class="login-container">
-        <div class="logo">Scribblate</div>
-        <div class="tagline">Create stories together, 45 seconds at a time</div>
-        
-        <div class="auth-card">
-            <div class="auth-tabs">
-                <button class="auth-tab active" data-tab="signin">Sign In</button>
-                <button class="auth-tab" data-tab="signup">Sign Up</button>
-            </div>
+      <div class="logo">Scribblate</div>
+      <div class="tagline">Create stories together, 45 seconds at a time</div>
 
-            <!-- Google Sign In -->
-            <button id="googleSignIn" class="auth-button google">
-                <i class="fab fa-google"></i>
-                Continue with Google
-                <div id="googleLoading" class="loading"></div>
-            </button>
-
-            <div class="divider">
-                <span>or</span>
-            </div>
-
-            <!-- Email/Password Form -->
-            <form id="authForm">
-                <div class="input-group">
-                    <label for="email">Email</label>
-                    <input type="email" id="email" required>
-                </div>
-
-                <div class="input-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" required minlength="6">
-                </div>
-
-                <button type="submit" id="submitButton" class="auth-button">
-                    Sign In
-                    <div id="submitLoading" class="loading"></div>
-                </button>
-            </form>
-
-            <a href="#" class="forgot-password" id="forgotPassword">Forgot password?</a>
-
-            <div id="errorMessage" class="error-message"></div>
-            <div id="successMessage" class="success-message"></div>
+      <div class="auth-card">
+        <div class="auth-tabs">
+          <button class="auth-tab active" data-tab="signin">Sign In</button>
+          <button class="auth-tab" data-tab="signup">Sign Up</button>
         </div>
+
+        <!-- Google Sign In -->
+        <button id="googleSignIn" class="auth-button google">
+          <i class="fab fa-google"></i>
+          Continue with Google
+          <div id="googleLoading" class="loading"></div>
+        </button>
+
+        <div class="divider">
+          <span>or</span>
+        </div>
+
+        <!-- Email/Password Form -->
+        <form id="authForm">
+          <div class="input-group">
+            <label for="email">Email</label>
+            <input type="email" id="email" required />
+          </div>
+
+          <div class="input-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" required minlength="6" />
+          </div>
+
+          <button type="submit" id="submitButton" class="auth-button">
+            Sign In
+            <div id="submitLoading" class="loading"></div>
+          </button>
+        </form>
+
+        <a href="#" class="forgot-password" id="forgotPassword"
+          >Forgot password?</a
+        >
+
+        <div id="errorMessage" class="error-message"></div>
+        <div id="successMessage" class="success-message"></div>
+      </div>
     </div>
 
     <script type="module">
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js';
-        import { 
-            getAuth, 
-            signInWithPopup, 
-            GoogleAuthProvider,
-            createUserWithEmailAndPassword,
-            signInWithEmailAndPassword,
-            sendPasswordResetEmail,
-            onAuthStateChanged 
-        } from 'https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js';
-        import { getDatabase, ref, set, get } 
-            from 'https://www.gstatic.com/firebasejs/11.1.0/firebase-database.js';
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+    import { 
+        getAuth, 
+        signInWithPopup, 
+        GoogleAuthProvider,
+        createUserWithEmailAndPassword,
+        signInWithEmailAndPassword,
+        sendPasswordResetEmail,
+        onAuthStateChanged 
+    } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+    import { getDatabase, ref, set, get } 
+        from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js';
 
-        // Firebase configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyD5cPsewQLJEqkzxqSGX-QZQmrK-dxpvaM",
-            authDomain: "scribblate-ce00a.firebaseapp.com",
-            projectId: "scribblate-ce00a",
-            storageBucket: "scribblate-ce00a.firebasestorage.app",
-            messagingSenderId: "752237311953",
-            appId: "1:752237311953:web:5d9425779169a9b80752f0",
-            measurementId: "G-B47QVGX24Y",
-            databaseURL: "https://scribblate-ce00a-default-rtdb.firebaseio.com"
-        };
+    const firebaseConfig = {
+        apiKey: "AIzaSyD5cPsewQLJEqkzxqSGX-QZQmrK-dxpvaM",
+        authDomain: "scribblate-ce00a.firebaseapp.com",
+        projectId: "scribblate-ce00a",
+        storageBucket: "scribblate-ce00a.firebasestorage.app",
+        messagingSenderId: "752237311953",
+        appId: "1:752237311953:web:5d9425779169a9b80752f0",
+        measurementId: "G-B47QVGX24Y",
+        databaseURL: "https://scribblate-ce00a-default-rtdb.firebaseio.com"
+    };
 
-        try {
+    // Initialize Firebase
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const database = getDatabase(app);
     console.log("Firebase initialized successfully");
-} catch (error) {
-    console.error("Firebase initialization error:", error);
-}
 
-        // UI Elements
-        const googleSignInButton = document.getElementById('googleSignIn');
-        const authForm = document.getElementById('authForm');
-        const submitButton = document.getElementById('submitButton');
-        const googleLoading = document.getElementById('googleLoading');
-        const submitLoading = document.getElementById('submitLoading');
-        const errorMessageElement = document.getElementById('errorMessage');
-        const successMessageElement = document.getElementById('successMessage');
-        const forgotPasswordLink = document.getElementById('forgotPassword');
+    // UI Elements
+    const googleSignInButton = document.getElementById('googleSignIn');
+    const authForm = document.getElementById('authForm');
+    const submitButton = document.getElementById('submitButton');
+    const googleLoading = document.getElementById('googleLoading');
+    const submitLoading = document.getElementById('submitLoading');
+    const errorMessageElement = document.getElementById('errorMessage');
+    const successMessageElement = document.getElementById('successMessage');
+    const forgotPasswordLink = document.getElementById('forgotPassword');
 
-        // Tab System
-        let currentTab = 'signin';
-        document.querySelectorAll('.auth-tab').forEach(tab => {
-            tab.addEventListener('click', () => {
-                currentTab = tab.dataset.tab;
-                
-                // Update active tab
-                document.querySelectorAll('.auth-tab').forEach(t => 
-                    t.classList.toggle('active', t === tab));
-                
-                // Update form button text
-                submitButton.textContent = currentTab === 'signin' ? 'Sign In' : 'Sign Up';
-                
-                // Clear form and errors
-                authForm.reset();
-                hideMessages();
-            });
-        });
-
-        googleSignInButton.addEventListener('click', async () => {
-    console.log("Starting Google Sign In...");
-    try {
-        const provider = new GoogleAuthProvider();
-        const result = await signInWithPopup(auth, provider);
-        console.log("Sign in successful!");
-        await initializeUserProfile(result.user);
-        window.location.href = 'app.html';
-    } catch (error) {
-        console.error("Detailed error:", {
-            code: error.code,
-            message: error.message,
-            email: error.email,
-            credential: error.credential
-        });
-        showError(getErrorMessage(error));
-    }
-});
-
-             
-        // Email/Password Auth
-        authForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
+    // Tab System
+    let currentTab = 'signin';
+    document.querySelectorAll('.auth-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            currentTab = tab.dataset.tab;
             
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
+            // Update active tab
+            document.querySelectorAll('.auth-tab').forEach(t => 
+                t.classList.toggle('active', t === tab));
+            
+            // Update form button text
+            submitButton.textContent = currentTab === 'signin' ? 'Sign In' : 'Sign Up';
+            
+            // Clear form and errors
+            authForm.reset();
+            hideMessages();
+        });
+    });
 
-            try {
-                showLoading(submitButton, submitLoading);
-                hideMessages();
+    // Google Sign In
+    googleSignInButton.addEventListener('click', async () => {
+        console.log("Starting Google Sign In...");
+        try {
+            showLoading(googleSignInButton, googleLoading);
+            hideMessages();
 
-                if (currentTab === 'signup') {
-                    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                    await initializeUserProfile(userCredential.user);
-                    window.location.href = 'app.html';
-                } else {
-                    await signInWithEmailAndPassword(auth, email, password);
-                    window.location.href = 'app.html';
+            const provider = new GoogleAuthProvider();
+            console.log("Initiating Google sign in popup");
+            const result = await signInWithPopup(auth, provider);
+            console.log("Google sign in successful:", result.user.email);
+            await initializeUserProfile(result.user);
+            window.location.href = 'app.html';
+        } catch (error) {
+            console.error("Google sign in error:", error);
+            showError(getErrorMessage(error));
+        } finally {
+            hideLoading(googleSignInButton, googleLoading);
+        }
+    });
+
+    // Email/Password Auth
+    authForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+
+        try {
+            showLoading(submitButton, submitLoading);
+            hideMessages();
+
+            if (currentTab === 'signup') {
+                console.log("Creating new account");
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                console.log("Account created successfully");
+                await initializeUserProfile(userCredential.user);
+                window.location.href = 'app.html';
+            } else {
+                console.log("Signing in to existing account");
+                const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                console.log("Sign in successful");
+                window.location.href = 'app.html';
+            }
+        } catch (error) {
+            console.error("Authentication error:", error);
+            showError(getErrorMessage(error));
+        } finally {
+            hideLoading(submitButton, submitLoading);
+        }
+    });
+
+    // Forgot Password
+    forgotPasswordLink.addEventListener('click', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('email').value;
+
+        if (!email) {
+            showError('Please enter your email address');
+            return;
+        }
+
+        try {
+            showLoading(submitButton, submitLoading);
+            hideMessages();
+
+            await sendPasswordResetEmail(auth, email);
+            showSuccess('Password reset email sent. Please check your inbox.');
+        } catch (error) {
+            console.error("Password reset error:", error);
+            showError(getErrorMessage(error));
+        } finally {
+            hideLoading(submitButton, submitLoading);
+        }
+    });
+
+    // Initialize user profile
+    async function initializeUserProfile(user) {
+        console.log("Initializing user profile");
+        const userRef = ref(database, `users/${user.uid}`);
+        const snapshot = await get(userRef);
+        
+        if (!snapshot.exists()) {
+            console.log("Creating new user profile");
+            await set(userRef, {
+                displayName: user.displayName || user.email.split('@')[0],
+                email: user.email,
+                photoURL: user.photoURL || null,
+                joinedAt: Date.now(),
+                stats: {
+                    storiesContributed: 0,
+                    totalWords: 0,
+                    avgResponseTime: 0
                 }
-            } catch (error) {
-                showError(getErrorMessage(error));
-            } finally {
-                hideLoading(submitButton, submitLoading);
-            }
-        });
-
-        // Forgot Password
-        forgotPasswordLink.addEventListener('click', async (e) => {
-            e.preventDefault();
-            const email = document.getElementById('email').value;
-
-            if (!email) {
-                showError('Please enter your email address');
-                return;
-            }
-
-            try {
-                showLoading(submitButton, submitLoading);
-                hideMessages();
-
-                await sendPasswordResetEmail(auth, email);
-                showSuccess('Password reset email sent. Please check your inbox.');
-            } catch (error) {
-                showError(getErrorMessage(error));
-            } finally {
-                hideLoading(submitButton, submitLoading);
-            }
-        });
-
-        // Initialize user profile
-        async function initializeUserProfile(user) {
-            const userRef = ref(database, `users/${user.uid}`);
-            const snapshot = await get(userRef);
-            
-            if (!snapshot.exists()) {
-                await set(userRef, {
-                    displayName: user.displayName || email.split('@')[0],
-                    email: user.email,
-                    photoURL: user.photoURL || null,
-                    joinedAt: Date.now(),
-                    stats: {
-                        storiesContributed: 0,
-                        totalWords: 0,
-                        avgResponseTime: 0
-                    }
-                });
-            }
+            });
+            console.log("User profile created");
+        } else {
+            console.log("User profile already exists");
         }
-
-        // Helper functions
-        function showLoading(button, spinner) {
-            button.disabled = true;
-            spinner.style.display = 'inline-block';
-        }
-
-        function hideLoading(button, spinner) {
-            button.disabled = false;
-            spinner.style.display = 'none';
-        }
-
-        function showError(message) {
-            errorMessageElement.textContent = message;
-            errorMessageElement.style.display = 'block';
-            successMessageElement.style.display = 'none';
-        }
-
-        function showSuccess(message) {
-            successMessageElement.textContent = message;
-            successMessageElement.style.display = 'block';
-            errorMessageElement.style.display = 'none';
-        }
-
-        function hideMessages() {
-            errorMessageElement.style.display = 'none';
-            successMessageElement.style.display = 'none';
-        }
-
-        function getErrorMessage(error) {
-            switch (error.code) {
-                case 'auth/email-already-in-use':
-                    return 'This email is already registered. Please sign in instead.';
-                case 'auth/invalid-email':
-                    return 'Please enter a valid email address.';
-                case 'auth/operation-not-allowed':
-                    return 'Email/password accounts are not enabled. Please contact support.';
-                case 'auth/weak-password':
-                    return 'Please choose a stronger password (at least 6 characters).';
-                case 'auth/user-disabled':
-                    return 'This account has been disabled. Please contact support.';
-                case 'auth/user-not-found':
-                    return 'No account found with this email. Please sign up instead.';
-                case 'auth/wrong-password':
-                    return 'Incorrect password. Please try again.';
-                case 'auth/popup-blocked':
-                    return 'Please allow popups for this website to sign in with Google.';
-                case 'auth/popup-closed-by-user':
-                    return 'Sign in was cancelled. Please try again.';
-                case 'auth/network-request-failed':
-                    return 'Network error. Please check your connection and try again.';
-                default:
-                    return 'An error occurred. Please try again.';
-            }
-        }
-
-        // Check if user is already signed in
-        onAuthStateChanged(auth, (user) => {
-    console.log("Auth state changed:", user ? `User logged in: ${user.email}` : "No user");
-    if (user) {
-        window.location.href = 'app.html';
     }
-}, error => {
-    console.error("Auth state error:", error);
-});
+
+    // Helper functions
+    function showLoading(button, spinner) {
+        button.disabled = true;
+        spinner.style.display = 'inline-block';
+    }
+
+    function hideLoading(button, spinner) {
+        button.disabled = false;
+        spinner.style.display = 'none';
+    }
+
+    function showError(message) {
+        errorMessageElement.textContent = message;
+        errorMessageElement.style.display = 'block';
+        successMessageElement.style.display = 'none';
+    }
+
+    function showSuccess(message) {
+        successMessageElement.textContent = message;
+        successMessageElement.style.display = 'block';
+        errorMessageElement.style.display = 'none';
+    }
+
+    function hideMessages() {
+        errorMessageElement.style.display = 'none';
+        successMessageElement.style.display = 'none';
+    }
+
+    function getErrorMessage(error) {
+        console.log("Getting error message for:", error.code);
+        switch (error.code) {
+            case 'auth/email-already-in-use':
+                return 'This email is already registered. Please sign in instead.';
+            case 'auth/invalid-email':
+                return 'Please enter a valid email address.';
+            case 'auth/operation-not-allowed':
+                return 'Email/password accounts are not enabled. Please contact support.';
+            case 'auth/weak-password':
+                return 'Please choose a stronger password (at least 6 characters).';
+            case 'auth/user-disabled':
+                return 'This account has been disabled. Please contact support.';
+            case 'auth/user-not-found':
+                return 'No account found with this email. Please sign up instead.';
+            case 'auth/wrong-password':
+                return 'Incorrect password. Please try again.';
+            case 'auth/popup-blocked':
+                return 'Please allow popups for this website to sign in with Google.';
+            case 'auth/popup-closed-by-user':
+                return 'Sign in was cancelled. Please try again.';
+            case 'auth/network-request-failed':
+                return 'Network error. Please check your connection and try again.';
+            default:
+                return `An error occurred: ${error.message}`;
+        }
+    }
+
+    onAuthStateChanged(auth, (user) => {
+        console.log("Checking auth state");
+        if (user) {
+            console.log("User is signed in:", user.email);
+            window.location.href = 'app.html';
+        } else {
+            console.log("No user signed in");
+        }
+    });
+</script>
     </script>
-</body>
+  </body>
 </html>
