@@ -696,53 +696,61 @@
       let isInitialized = false;
 
       async function initializeAppFeatures() {
-        // Prevent double initialization
-        if (isInitialized) return;
+    if (isInitialized) return;
 
-        try {
-          console.log('Starting app initialization');
-
-          // Check if user is authenticated
-          if (!currentUser) {
+    try {
+        if (!currentUser) {
             throw new Error('User not authenticated');
-          }
+        }
 
-          // Test database access
-          const testRef = ref(database, `users/${currentUser.uid}/test`);
-          try {
+        // Test database access
+        const testRef = ref(database, `users/${currentUser.uid}/test`);
+        try {
             await set(testRef, { timestamp: Date.now() });
             await remove(testRef);
             console.log('Database access verified');
-          } catch (error) {
-            console.error('Database access error:', error);
-            throw new Error(
-              'Database access denied. Please check permissions.'
-            );
-          }
-
-          // Initialize features
-          await loadUserCustomContent();
-          setupMoodButtons();
-          setupCustomPrompts();
-          await joinOrCreateStory();
-          initializeCollaboration();
-
-          updatePrompt(currentMood);
-          startTimer();
-
-          isInitialized = true;
-          console.log('App initialization complete');
         } catch (error) {
-          console.error('Error initializing app:', error);
-          const message = document.querySelector('.message');
-          message.innerHTML = `
+            console.error('Database access error:', error);
+            throw new Error('Database access denied');
+        }
+
+        // Initialize features
+        await loadUserCustomContent();
+        setupMoodButtons();
+        setupCustomPrompts();
+
+        // Get story information from localStorage
+        const savedStoryId = localStorage.getItem('storyId');
+        const isNewStory = localStorage.getItem('isNewStory') === 'true';
+        
+        // Clear localStorage
+        localStorage.removeItem('storyId');
+        localStorage.removeItem('isNewStory');
+
+        // Initialize story flow
+        if (isNewStory) {
+            await createNewStory();
+        } else if (savedStoryId) {
+            await joinExistingStory(savedStoryId);
+        } else {
+            // Default to creating new story if no context
+            await createNewStory();
+        }
+
+        isInitialized = true;
+        console.log('App initialization complete');
+
+    } catch (error) {
+        console.error('Error initializing app:', error);
+        const message = document.querySelector('.message');
+        message.innerHTML = `
             <div class="error-message">
                 <i class="fas fa-exclamation-circle"></i>
-                <span>There was an error initializing the app. Please try refreshing the page.</span>
+                <span>There was an error initializing the app. Please try again.</span>
             </div>
         `;
-        }
-      }
+    }
+}
 
       // Load user's custom content
       async function loadUserCustomContent() {
@@ -1008,6 +1016,8 @@
         showStoryModal(story);
       }
 
+      
+
       function updateViewersUI(viewers) {
         const container = document.getElementById('activeViewers');
         const viewerCount = document.getElementById('viewerCount');
@@ -1069,6 +1079,8 @@
         },
         // Add more achievements
       };
+
+      
 
       async function checkAchievements(contribution) {
         const userAchievementsRef = ref(
@@ -1346,42 +1358,535 @@
       }
 
       // Timer and Phase Management
-      function startTimer() {
-        clearInterval(timer); // Clear any existing timer
-        timeLeft = 45; // Reset time
-        document.getElementById('timerDisplay').textContent = timeLeft;
+      
 
-        timer = setInterval(() => {
-          timeLeft--;
-          document.getElementById('timerDisplay').textContent = timeLeft;
+      // First, add this CSS to your existing styles
+const postContributionStyles = `
+  .post-contribution {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--background);
+    z-index: 1000;
+    display: none;
+    animation: slideIn 0.3s ease-out;
+  }
 
-          if (timeLeft === 0) {
-            if (currentPhase === 'write') {
-              submitContribution();
+  .post-contribution.show {
+    display: flex;
+    flex-direction: column;
+  }
+
+  @keyframes slideIn {
+    from {
+      transform: translateY(20px);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  .post-contribution-header {
+    padding: 2rem;
+    text-align: center;
+    background: var(--card-bg);
+    box-shadow: var(--card-shadow);
+  }
+
+  .post-contribution-title {
+    font-size: 1.5rem;
+    color: var(--text);
+    margin-bottom: 1rem;
+  }
+
+  .post-contribution-subtitle {
+    color: var(--secondary);
+    margin-bottom: 2rem;
+  }
+
+  .post-contribution-content {
+    flex: 1;
+    padding: 2rem;
+    overflow-y: auto;
+  }
+
+  .full-story {
+    max-width: 800px;
+    margin: 0 auto;
+    background: var(--card-bg);
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: var(--card-shadow);
+  }
+
+  .contribution-highlight {
+    border-left: 4px solid var(--primary);
+    padding-left: 1rem;
+    margin: 1rem 0;
+    background: rgba(65, 105, 225, 0.05);
+    animation: highlight 1s ease-out;
+  }
+
+  @keyframes highlight {
+    from {
+      background-color: rgba(65, 105, 225, 0.2);
+    }
+    to {
+      background-color: rgba(65, 105, 225, 0.05);
+    }
+  }
+
+  .post-contribution-actions {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    padding: 2rem;
+    background: var(--card-bg);
+    box-shadow: var(--card-shadow);
+  }
+
+  .contribution-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--secondary);
+  }
+
+  .author-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .author-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+  }
+`;
+
+// Add the HTML structure to your page
+const postContributionHTML = `
+  <div class="post-contribution">
+    <div class="post-contribution-header">
+      <h2 class="post-contribution-title">Story Updated!</h2>
+      <p class="post-contribution-subtitle">Your contribution has been added to the story</p>
+    </div>
+    
+    <div class="post-contribution-content">
+      <div class="full-story">
+        <!-- Story content will be inserted here -->
+      </div>
+    </div>
+
+    <div class="post-contribution-actions">
+      <button class="button button-primary" onclick="continueCollaborating()">
+        <i class="fas fa-pen"></i>
+        Continue Collaborating
+      </button>
+      <button class="button button-secondary" onclick="startNewStory()">
+        <i class="fas fa-plus"></i>
+        Start New Story
+      </button>
+    </div>
+  </div>
+`;
+
+// Add this to your JavaScript
+class PostContributionHandler {
+    constructor() {
+        this.setupUI();
+    }
+
+    setupUI() {
+        // Add styles
+        const style = document.createElement('style');
+        style.textContent = postContributionStyles;
+        document.head.appendChild(style);
+
+        // Add HTML
+        document.body.insertAdjacentHTML('beforeend', postContributionHTML);
+
+        // Initialize container
+        this.container = document.querySelector('.post-contribution');
+        this.storyContainer = this.container.querySelector('.full-story');
+    }
+
+    async showPostContribution(contributionId) {
+        try {
+            // Get the full story
+            const storyRef = ref(database, `stories/${currentStoryId}`);
+            const snapshot = await get(storyRef);
+            const story = snapshot.val();
+
+            if (!story) return;
+
+            // Render the full story with the new contribution highlighted
+            this.renderStory(story, contributionId);
+            
+            // Show the post-contribution screen
+            this.container.classList.add('show');
+
+            // Track story view
+            this.trackStoryView();
+        } catch (error) {
+            console.error('Error showing post-contribution:', error);
+        }
+    }
+
+    renderStory(story, highlightedContributionId) {
+        const contributions = story.contributions || {};
+        const sortedContributions = Object.entries(contributions)
+            .sort(([, a], [, b]) => a.timestamp - b.timestamp);
+
+        this.storyContainer.innerHTML = sortedContributions
+            .map(([id, contribution]) => `
+                <div class="contribution ${id === highlightedContributionId ? 'contribution-highlight' : ''}">
+                    <div class="contribution-meta">
+                        <div class="author-info">
+                            <img src="${contribution.userPhoto || getUserPhoto(contribution.userId)}" 
+                                 alt="${contribution.userName}"
+                                 class="author-avatar">
+                            <span>${contribution.userName}</span>
+                        </div>
+                        <span>${formatTime(contribution.timestamp)}</span>
+                    </div>
+                    <p>${contribution.content}</p>
+                    <div class="reactions">
+                        ${this.renderReactions(contribution.reactions || {}, id)}
+                    </div>
+                </div>
+            `).join('');
+    }
+
+    renderReactions(reactions, contributionId) {
+        const reactionTypes = {
+            heart: { icon: 'fa-heart', label: 'Love' },
+            laugh: { icon: 'fa-laugh', label: 'Haha' },
+            wow: { icon: 'fa-surprise', label: 'Wow' },
+            sad: { icon: 'fa-sad-tear', label: 'Sad' },
+            thumbsup: { icon: 'fa-thumbs-up', label: 'Like' }
+        };
+
+        return Object.entries(reactionTypes)
+            .map(([type, { icon, label }]) => {
+                const count = (reactions[type] || []).length;
+                const hasReacted = reactions[type]?.includes(currentUser.uid);
+                return `
+                    <button class="reaction-button ${hasReacted ? 'active' : ''}"
+                            onclick="addReaction('${contributionId}', '${type}')">
+                        <i class="fas ${icon}"></i>
+                        <span class="reaction-count">${count}</span>
+                    </button>
+                `;
+            }).join('');
+    }
+
+    async trackStoryView() {
+        if (!currentUser) return;
+
+        const viewRef = ref(database, `stories/${currentStoryId}/views/${currentUser.uid}`);
+        await set(viewRef, {
+            timestamp: Date.now(),
+            userId: currentUser.uid,
+            userName: currentUser.displayName
+        });
+    }
+
+    hide() {
+        this.container.classList.remove('show');
+    }
+}
+
+// Update your submitContribution function
+
+
+// Add these functions to handle post-contribution actions
+window.continueCollaborating = () => {
+    const postContribution = document.querySelector('.post-contribution');
+    postContribution.classList.remove('show');
+    startNewRound();
+};
+
+class StoryFlowManager {
+    constructor() {
+        this.currentPhase = null;
+        this.timeLeft = 45;
+        this.timer = null;
+        this.storyId = null;
+        
+        // Get story information from localStorage
+        const savedStoryId = localStorage.getItem('storyId');
+        this.isNewStory = localStorage.getItem('isNewStory') === 'true';
+        
+        // Clear localStorage
+        localStorage.removeItem('storyId');
+        localStorage.removeItem('isNewStory');
+
+        // Initialize with saved story ID if exists
+        this.initializeStory(savedStoryId);
+    }
+
+    async initializeStory(storyId = null) {
+        if (this.isNewStory) {
+            await this.createNewStory();
+        } else {
+            await this.joinExistingStory(storyId);
+        }
+    }
+
+    async createNewStory() {
+        try {
+            const storiesRef = ref(database, 'stories');
+            const newStoryRef = push(storiesRef);
+            this.storyId = newStoryRef.key;
+
+            const storyData = {
+                createdAt: Date.now(),
+                status: 'active',
+                creator: {
+                    uid: currentUser.uid,
+                    displayName: currentUser.displayName,
+                    photoURL: currentUser.photoURL
+                },
+                currentMood: currentMood,
+                prompt: this.generatePrompt(currentMood),
+                contributions: {},
+                participants: {
+                    [currentUser.uid]: {
+                        joinedAt: Date.now(),
+                        isActive: true
+                    }
+                }
+            };
+
+            await set(newStoryRef, storyData);
+            this.startWritingPhase();
+
+        } catch (error) {
+            console.error('Error creating new story:', error);
+            alert('Error creating new story. Please try again.');
+        }
+    }
+
+    async joinExistingStory(storyId) {
+        try {
+            this.storyId = storyId;
+            const storyRef = ref(database, `stories/${storyId}`);
+            const snapshot = await get(storyRef);
+            const story = snapshot.val();
+
+            if (!story) throw new Error('Story not found');
+
+            // Join as participant
+            await set(ref(database, `stories/${storyId}/participants/${currentUser.uid}`), {
+                joinedAt: Date.now(),
+                isActive: true
+            });
+
+            // Start with preview phase
+            this.startPreviewPhase(story);
+
+        } catch (error) {
+            console.error('Error joining story:', error);
+            alert('Error joining story. Please try again.');
+            window.location.href = '/index.html';
+        }
+    }
+
+    startPreviewPhase(story) {
+        this.currentPhase = 'preview';
+        this.timeLeft = 45;
+        clearInterval(this.timer);
+
+        const elements = {
+            preview: document.querySelector('.story-preview'),
+            writingArea: document.querySelector('.writing-area'),
+            message: document.querySelector('.message'),
+            prompt: document.querySelector('.prompt-banner')
+        };
+
+        // Update UI
+        if (elements.preview) {
+            elements.preview.style.display = 'block';
+            elements.preview.innerHTML = this.formatStoryContent(story);
+        }
+        if (elements.writingArea) {
+            elements.writingArea.style.display = 'none';
+        }
+        if (elements.message) {
+            elements.message.textContent = 'Take a moment to read the story...';
+        }
+        if (elements.prompt) {
+            elements.prompt.textContent = story.prompt || 'Loading prompt...';
+        }
+
+        this.startTimer(() => this.startWritingPhase());
+    }
+
+    startWritingPhase() {
+        this.currentPhase = 'write';
+        this.timeLeft = 45;
+        clearInterval(this.timer);
+
+        const elements = {
+            preview: document.querySelector('.story-preview'),
+            writingArea: document.querySelector('.writing-area'),
+            message: document.querySelector('.message')
+        };
+
+        // Update UI
+        if (elements.preview) elements.preview.style.display = 'none';
+        if (elements.writingArea) {
+            elements.writingArea.style.display = 'block';
+            elements.writingArea.value = ''; // Clear any previous content
+            elements.writingArea.focus();
+        }
+        if (elements.message) {
+            elements.message.textContent = "It's your turn to write!";
+        }
+
+        this.startTimer(() => this.handleTimeUp());
+    }
+
+    startTimer(callback) {
+        const timerDisplay = document.getElementById('timerDisplay');
+        
+        this.timer = setInterval(() => {
+            this.timeLeft--;
+            if (timerDisplay) timerDisplay.textContent = this.timeLeft;
+
+            if (this.timeLeft <= 0) {
+                clearInterval(this.timer);
+                callback();
             }
-            nextPhase();
-          }
         }, 1000);
-        console.log('Timer started'); // Debug log
-      }
 
-      async function submitContribution() {
-        const content = document.querySelector('.writing-area').value.trim();
+        if (timerDisplay) timerDisplay.textContent = this.timeLeft;
+    }
+
+    formatStoryContent(story) {
+        const contributions = Object.entries(story.contributions || {})
+            .sort(([, a], [, b]) => a.timestamp - b.timestamp);
+
+        return `
+            <div class="story-prompt">${story.prompt}</div>
+            ${contributions.map(([id, contribution]) => `
+                <div class="contribution">
+                    <div class="contribution-meta">
+                        <div class="author-info">
+                            <img src="${contribution.userPhoto}" alt="${contribution.userName}" class="author-avatar">
+                            <span class="author-name">${contribution.userName}</span>
+                        </div>
+                        <span class="timestamp">${formatTime(contribution.timestamp)}</span>
+                    </div>
+                    <div class="contribution-content">${contribution.content}</div>
+                </div>
+            `).join('')}
+        `;
+    }
+
+    generatePrompt(mood) {
+        const prompts = defaultPrompts[mood] || defaultPrompts.creative;
+        return prompts[Math.floor(Math.random() * prompts.length)];
+    }
+
+    async handleTimeUp() {
+        if (this.currentPhase === 'write') {
+            await this.submitContribution();
+        }
+    }
+
+    async submitContribution() {
+        const writingArea = document.querySelector('.writing-area');
+        if (!writingArea) return;
+
+        const content = writingArea.value.trim();
         if (!content) return;
 
-        const contributionRef = ref(
-          database,
-          `stories/${currentStoryId}/contributions`
-        );
-        await push(contributionRef, {
-          content,
-          userId: currentUser.uid,
-          userName: currentUser.displayName,
-          timestamp: Date.now(),
-        });
+        try {
+            const contributionRef = push(ref(database, `stories/${this.storyId}/contributions`));
+            const contribution = {
+                content,
+                userId: currentUser.uid,
+                userName: currentUser.displayName,
+                userPhoto: currentUser.photoURL,
+                timestamp: Date.now()
+            };
 
-        showSuccessAnimation();
-      }
+            await set(contributionRef, contribution);
+            
+            // Show post-contribution view
+            const postContributionHandler = new PostContributionHandler();
+            await postContributionHandler.showPostContribution(this.storyId, contributionRef.key);
+
+        } catch (error) {
+            console.error('Error submitting contribution:', error);
+            alert('Error submitting contribution. Please try again.');
+        }
+    }
+}
+
+window.startNewStory = async () => {
+    try {
+        // Leave current story
+        await leaveCurrentStory();
+        
+        // Create or join new story
+        const newStory = await createOrJoinStorySession(currentUser.uid);
+        currentStoryId = newStory.id;
+        
+        // Reset UI
+        const postContribution = document.querySelector('.post-contribution');
+        postContribution.classList.remove('show');
+        
+        // Initialize new story
+        initializeStory();
+    } catch (error) {
+        console.error('Error starting new story:', error);
+        alert('Error starting new story. Please try again.');
+    }
+};
+
+async function leaveCurrentStory() {
+    if (!currentStoryId || !currentUser) return;
+    
+    const participantRef = ref(database, `stories/${currentStoryId}/participants/${currentUser.uid}`);
+    await remove(participantRef);
+}
+
+function startTimer() {
+    clearInterval(timer);
+    timeLeft = 45;
+    document.getElementById('timerDisplay').textContent = timeLeft;
+
+    timer = setInterval(() => {
+        timeLeft--;
+        document.getElementById('timerDisplay').textContent = timeLeft;
+
+        if (timeLeft <= 0) {
+            if (currentPhase === 'write') {
+                submitContribution();
+            }
+            nextPhase();
+        }
+    }, 1000);
+}
+
+function startNewRound() {
+    currentPhase = 'brainstorm';
+    timeLeft = 45;
+    updatePhaseUI();
+    startTimer();
+}
+
+
 
       function showSuccessAnimation() {
         const message = document.querySelector('.message');
@@ -1397,6 +1902,8 @@
         </div>
     `;
       }
+
+      
 
       // Make functions available globally
       window.showAddPromptModal = () =>

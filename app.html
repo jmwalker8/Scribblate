@@ -1,91 +1,757 @@
-<!-- index.html (new landing page) -->
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Scribblate - Collaborative Story Writing</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-      .hero-section {
-        background: linear-gradient(135deg, var(--primary), #7c3aed);
-        color: white;
-        padding: 4rem 2rem;
-        text-align: center;
-      }
+        :root {
+            --transition-speed: 0.3s;
+            /* Light theme (default) */
+            --primary: #4169e1;
+            --secondary: #7c3aed;
+            --background: #f5f5f5;
+            --text: #333333;
+            --card-bg: #ffffff;
+            --card-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            --border: #e5e7eb;
+            --skeleton-base: #f0f0f0;
+            --skeleton-highlight: #f8f8f8;
+            --nav-bg: #ffffff;
+            --header-bg: #ffffff;
+        }
 
-      .featured-stories {
-        padding: 2rem;
-      }
+        [data-theme="dark"] {
+            --primary: #6d8fff;
+            --secondary: #9d6dff;
+            --background: #1a1a1a;
+            --text: #e5e5e5;
+            --card-bg: #2d2d2d;
+            --card-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            --border: #404040;
+            --skeleton-base: #2d2d2d;
+            --skeleton-highlight: #3d3d3d;
+            --nav-bg: #2d2d2d;
+            --header-bg: #2d2d2d;
+        }
 
-      .stories-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-        gap: 2rem;
-        padding: 2rem;
-      }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
 
-      .story-card {
-        background: white;
-        border-radius: 12px;
-        padding: 1.5rem;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        transition: transform 0.2s;
-      }
+        body {
+            background: var(--background);
+            min-height: 100vh;
+            color: var(--text);
+            transition: background-color var(--transition-speed);
+        }
 
-      .story-card:hover {
-        transform: translateY(-5px);
-      }
+        /* Navigation styles */
+        .nav-bar {
+            background: var(--nav-bg);
+            padding: 1rem 2rem;
+            box-shadow: var(--card-shadow);
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 100;
+            transition: background-color var(--transition-speed),
+                        box-shadow var(--transition-speed);
+        }
 
-      .categories-section {
-        display: flex;
-        gap: 1rem;
-        justify-content: center;
-        margin: 2rem 0;
-      }
+        .nav-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
 
-      .category-tag {
-        padding: 0.5rem 1rem;
-        border-radius: 20px;
-        cursor: pointer;
-        transition: background-color 0.2s;
-      }
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary);
+            transition: color var(--transition-speed);
+        }
 
-      .start-writing-btn {
-        background: var(--primary);
-        color: white;
-        padding: 1rem 2rem;
-        border-radius: 30px;
-        font-size: 1.2rem;
-        margin-top: 2rem;
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-      }
+        .nav-buttons {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        /* Container and header styles */
+        .container {
+            max-width: 1200px;
+            margin: 6rem auto 2rem;
+            padding: 0 2rem;
+        }
+
+        .header-section {
+            background: var(--header-bg);
+            border-radius: 12px;
+            padding: 3rem;
+            text-align: center;
+            margin-bottom: 2rem;
+            box-shadow: var(--card-shadow);
+            transition: background-color var(--transition-speed),
+                        box-shadow var(--transition-speed);
+        }
+
+        .header-title {
+            font-size: 2.5rem;
+            color: var(--text);
+            margin-bottom: 1rem;
+            transition: color var(--transition-speed);
+        }
+
+        .header-subtitle {
+            color: var(--secondary);
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+            transition: color var(--transition-speed);
+        }
+
+        /* Button styles */
+        .button {
+            padding: 0.75rem 1.5rem;
+            border-radius: 20px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            border: none;
+        }
+
+        .button-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .button-secondary {
+            background: var(--card-bg);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        /* Category styles */
+        .categories {
+            display: flex;
+            gap: 1rem;
+            margin: 2rem 0;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .category-tag {
+            padding: 0.75rem 1.5rem;
+            border-radius: 20px;
+            background: var(--card-bg);
+            color: var(--secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: var(--card-shadow);
+        }
+
+        .category-tag:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        .category-tag.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        /* Story grid and card styles */
+        .stories-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .story-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: var(--card-shadow);
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+                      box-shadow 0.3s ease,
+                      background-color var(--transition-speed);
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        .story-card.animate-in {
+            animation: fadeInUp 0.6s ease forwards;
+        }
+
+        .story-card:hover {
+            transform: scale(1.02) translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        }
+
+        .story-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 1rem;
+        }
+
+        .story-title {
+            font-size: 1.2rem;
+            color: var(--text);
+            margin-right: 1rem;
+            transition: color var(--transition-speed);
+        }
+
+        .story-category {
+            padding: 0.25rem 0.75rem;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            background: rgba(65, 105, 225, 0.1);
+            color: var(--primary);
+            white-space: nowrap;
+            transition: all var(--transition-speed);
+        }
+
+        .story-content {
+            color: var(--secondary);
+            margin-bottom: 1rem;
+            line-height: 1.6;
+            transition: color var(--transition-speed);
+        }
+
+        .story-stats {
+            display: flex;
+            gap: 1rem;
+            color: var(--secondary);
+            font-size: 0.9rem;
+            transition: color var(--transition-speed);
+        }
+
+        /* Section title styles */
+        .section-title {
+            font-size: 1.5rem;
+            color: var(--text);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: color var(--transition-speed);
+        }
+
+        /* Dark mode toggle styles */
+        .theme-toggle {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s;
+        }
+
+        .theme-toggle:hover {
+            background: var(--border);
+        }
+
+        .theme-toggle svg {
+            width: 20px;
+            height: 20px;
+            color: var(--text);
+            transition: color var(--transition-speed);
+        }
+
+        /* Loading skeleton styles */
+        .story-card-skeleton {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: var(--card-shadow);
+            height: 180px;
+            overflow: hidden;
+            position: relative;
+            transition: background-color var(--transition-speed),
+                      box-shadow var(--transition-speed);
+        }
+
+        .story-card-skeleton::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(
+                90deg,
+                var(--skeleton-base) 0%,
+                var(--skeleton-highlight) 50%,
+                var(--skeleton-base) 100%
+            );
+            background-size: 200% 100%;
+            animation: shimmer 2s infinite;
+        }
+
+        /* Queue styles */
+        .writer-queue {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            transition: all var(--transition-speed);
+        }
+
+        .queue-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem;
+            background: var(--card-bg);
+            border-radius: 8px;
+            transition: background-color var(--transition-speed);
+        }
+
+        .queue-item.you {
+            background: rgba(65, 105, 225, 0.1);
+        }
+
+        .queue-avatar {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+        }
+
+        .queue-position {
+            font-weight: bold;
+            color: var(--secondary);
+            min-width: 30px;
+        }
+
+        .queue-name {
+            flex: 1;
+            color: var(--text);
+        }
+
+        .queue-you-badge {
+            font-size: 0.8rem;
+            padding: 0.2rem 0.5rem;
+            background: var(--primary);
+            color: white;
+            border-radius: 12px;
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes shimmer {
+            0% {
+                background-position: -200% 0;
+            }
+            100% {
+                background-position: 200% 0;
+            }
+        }
+
+        /* Responsive styles */
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 1rem;
+            }
+
+            .header-section {
+                padding: 2rem 1rem;
+            }
+
+            .header-title {
+                font-size: 2rem;
+            }
+
+            .categories {
+                gap: 0.5rem;
+            }
+
+            .category-tag {
+                padding: 0.5rem 1rem;
+                font-size: 0.9rem;
+            }
+        }
     </style>
-  </head>
-  <body>
-    <nav class="main-nav">
-      <!-- Navigation -->
+</head>
+<body>
+    <nav class="nav-bar">
+        <div class="nav-content">
+            <div class="logo">Scribblate</div>
+            <div class="nav-buttons">
+                <button class="theme-toggle" aria-label="Toggle dark mode">
+                    <!-- Icon will be inserted by JavaScript -->
+                </button>
+                <button class="button button-secondary">Sign In</button>
+                <button class="button button-primary">Start Writing</button>
+            </div>
+        </div>
     </nav>
 
-    <section class="hero-section">
-      <h1>Write Stories Together</h1>
-      <p>45 seconds at a time</p>
-      <button class="start-writing-btn">
-        Start Writing
-        <i class="fas fa-pen"></i>
-      </button>
-    </section>
+    <div class="container">
+        <section class="header-section">
+            <h1 class="header-title">Create Stories Together</h1>
+            <p class="header-subtitle">45 seconds at a time</p>
+            <button class="button button-primary">
+                <i class="fas fa-pen"></i>
+                Start Writing
+            </button>
+        </section>
 
-    <section class="featured-stories">
-      <h2>Featured Stories</h2>
-      <div class="stories-grid">
-        <!-- Stories will be populated here -->
-      </div>
-    </section>
+        <div class="categories">
+            <div class="category-tag active">All Stories</div>
+            <div class="category-tag">Creative</div>
+            <div class="category-tag">Mysterious</div>
+            <div class="category-tag">Adventure</div>
+            <div class="category-tag">Romantic</div>
+            <div class="category-tag">Sci-Fi</div>
+        </div>
 
-    <section class="categories-section">
-      <!-- Categories will be here -->
-    </section>
-  </body>
+        <h2 class="section-title">
+            <i class="fas fa-star"></i>
+            Featured Stories
+        </h2>
+        
+        <div class="stories-grid">
+            <!-- Story cards will be inserted here by JavaScript -->
+        </div>
+    </div>
+
+    <script type="module">
+       
+       // Import Firebase modules
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+import { 
+    getDatabase, 
+    ref, 
+    set, 
+    onValue, 
+    get, 
+    remove, 
+    onDisconnect,
+    push,
+    serverTimestamp 
+} from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js';
+
+// Firebase configuration
+const firebaseConfig = {
+    apiKey: "AIzaSyD5cPsewQLJEqkzxqSGX-QZQmrK-dxpvaM",
+    authDomain: "scribblate-ce00a.firebaseapp.com",
+    projectId: "scribblate-ce00a",
+    storageBucket: "scribblate-ce00a.firebasestorage.app",
+    messagingSenderId: "752237311953",
+    appId: "1:752237311953:web:5d9425779169a9b80752f0",
+    measurementId: "G-B47QVGX24Y",
+    databaseURL: "https://scribblate-ce00a-default-rtdb.firebaseio.com"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const database = getDatabase(app);
+
+// Global state
+let currentUser = null;
+
+// Theme Management
+class ThemeManager {
+    constructor() {
+        this.theme = localStorage.getItem('theme') || 'light';
+        this.init();
+    }
+
+    init() {
+        const themeToggle = document.querySelector('.theme-toggle');
+        themeToggle.innerHTML = this.getThemeIcon();
+        themeToggle.addEventListener('click', () => this.toggleTheme());
+        this.applyTheme();
+    }
+
+    getThemeIcon() {
+        return this.theme === 'light' 
+            ? '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>'
+            : '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707"/></svg>';
+    }
+
+    toggleTheme() {
+        this.theme = this.theme === 'light' ? 'dark' : 'light';
+        localStorage.setItem('theme', this.theme);
+        this.applyTheme();
+        document.querySelector('.theme-toggle').innerHTML = this.getThemeIcon();
+    }
+
+    applyTheme() {
+        document.documentElement.setAttribute('data-theme', this.theme);
+    }
+}
+
+// Story Management
+class StoryManager {
+    constructor() {
+        this.storiesGrid = document.querySelector('.stories-grid');
+        this.loadingStories = false;
+        this.stories = [];
+    }
+
+    createSkeletonLoader() {
+        return `<div class="story-card-skeleton" aria-hidden="true"></div>`.repeat(6);
+    }
+
+    async loadStories(category = 'all') {
+        if (this.loadingStories) return;
+        this.loadingStories = true;
+
+        try {
+            // Show skeleton loaders
+            this.storiesGrid.innerHTML = this.createSkeletonLoader();
+
+            // Fetch stories
+            const storiesRef = ref(database, 'stories');
+            const snapshot = await get(storiesRef);
+            const stories = [];
+
+            if (snapshot.exists()) {
+                snapshot.forEach((childSnapshot) => {
+                    const story = childSnapshot.val();
+                    if (story.status === 'completed' && (category === 'all' || story.category === category)) {
+                        stories.push({
+                            id: childSnapshot.key,
+                            ...story
+                        });
+                    }
+                });
+            }
+
+            // Clear skeleton loaders
+            this.storiesGrid.innerHTML = '';
+            
+            // Add stories with staggered animation
+            stories.forEach((story, index) => {
+                setTimeout(() => {
+                    const storyCard = this.createStoryCard(story);
+                    storyCard.classList.add('animate-in');
+                    storyCard.style.animationDelay = `${index * 100}ms`;
+                    this.storiesGrid.appendChild(storyCard);
+                }, index * 100);
+            });
+        } catch (error) {
+            console.error('Error loading stories:', error);
+            this.storiesGrid.innerHTML = '<p>Error loading stories. Please try again later.</p>';
+        } finally {
+            this.loadingStories = false;
+        }
+    }
+
+    createStoryCard(story) {
+        const card = document.createElement('div');
+        card.className = 'story-card';
+        card.innerHTML = `
+            <div class="story-header">
+                <h3 class="story-title">${story.title || 'Untitled Story'}</h3>
+                <span class="story-category">${story.category || 'Uncategorized'}</span>
+            </div>
+            <p class="story-content">${this.getStoryPreview(story.contributions)}</p>
+            <div class="story-stats">
+                <span><i class="fas fa-user"></i> ${Object.keys(story.participants || {}).length} writers</span>
+                <span><i class="fas fa-heart"></i> ${Object.keys(story.likes || {}).length} likes</span>
+                <span><i class="fas fa-clock"></i> ${this.getTimeAgo(story.createdAt)}</span>
+            </div>
+        `;
+        return card;
+    }
+
+    getStoryPreview(contributions = {}) {
+        const preview = Object.values(contributions)
+            .sort((a, b) => a.timestamp - b.timestamp)
+            .map(c => c.content)
+            .join(' ');
+        return preview.slice(0, 150) + (preview.length > 150 ? '...' : '');
+    }
+
+    getTimeAgo(timestamp) {
+        if (!timestamp) return 'just now';
+        const seconds = Math.floor((Date.now() - timestamp) / 1000);
+        
+        const intervals = {
+            year: 31536000,
+            month: 2592000,
+            week: 604800,
+            day: 86400,
+            hour: 3600,
+            minute: 60,
+            second: 1
+        };
+
+        for (const [unit, secondsInUnit] of Object.entries(intervals)) {
+            const interval = Math.floor(seconds / secondsInUnit);
+            if (interval >= 1) {
+                return interval === 1 ? `1 ${unit} ago` : `${interval} ${unit}s ago`;
+            }
+        }
+        return 'just now';
+    }
+}
+
+// Landing Page Handler
+class LandingPageHandler {
+    constructor() {
+        this.initializeButtons();
+    }
+
+    initializeButtons() {
+        const startWritingButtons = document.querySelectorAll('.button-primary');
+        startWritingButtons.forEach(button => {
+            button.addEventListener('click', () => this.handleStartWriting());
+        });
+    }
+
+    async handleStartWriting() {
+        try {
+            if (!currentUser) {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            const storySession = await this.createOrJoinStorySession(currentUser.uid);
+            localStorage.setItem('currentStoryId', storySession.id);
+            window.location.href = 'write.html';
+        } catch (error) {
+            console.error('Error starting writing session:', error);
+            alert('Unable to start writing session. Please try again.');
+        }
+    }
+
+    async createOrJoinStorySession(userId) {
+        // Try to find an active story with space
+        const activeStoriesRef = ref(database, 'activeStories');
+        const snapshot = await get(activeStoriesRef);
+        
+        if (snapshot.exists()) {
+            const activeStories = snapshot.val();
+            for (const [storyId, story] of Object.entries(activeStories)) {
+                if (story.participantCount < 5) {
+                    // Join existing story
+                    const participantRef = ref(database, `stories/${storyId}/participants/${userId}`);
+                    await set(participantRef, {
+                        joinedAt: serverTimestamp(),
+                        lastActive: serverTimestamp()
+                    });
+
+                    // Update participant count
+                    await set(ref(database, `activeStories/${storyId}/participantCount`), story.participantCount + 1);
+
+                    return { id: storyId, ...story };
+                }
+            }
+        }
+
+        // Create new story if no suitable active story found
+        return await this.createNewStorySession(userId);
+    }
+
+    async createNewStorySession(userId) {
+        const storiesRef = ref(database, 'stories');
+        const newStoryRef = push(storiesRef);
+
+        const storyData = {
+            createdAt: serverTimestamp(),
+            status: 'active',
+            currentPhase: 'brainstorm',
+            participants: {
+                [userId]: {
+                    joinedAt: serverTimestamp(),
+                    lastActive: serverTimestamp()
+                }
+            },
+            contributions: {},
+            settings: {
+                maxParticipants: 5,
+                timePerContribution: 45,
+                mood: 'creative'
+            }
+        };
+
+        await set(newStoryRef, storyData);
+
+        // Add to active stories
+        const activeStoryRef = ref(database, `activeStories/${newStoryRef.key}`);
+        await set(activeStoryRef, {
+            createdAt: serverTimestamp(),
+            participantCount: 1
+        });
+
+        return { id: newStoryRef.key, ...storyData };
+    }
+}
+
+// Initialize everything when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    // Initialize managers
+    const themeManager = new ThemeManager();
+    const storyManager = new StoryManager();
+    const landingPageHandler = new LandingPageHandler();
+
+    // Load initial stories
+    storyManager.loadStories();
+
+    // Set up category filters
+    const categoryTags = document.querySelectorAll('.category-tag');
+    categoryTags.forEach(tag => {
+        tag.addEventListener('click', (e) => {
+            categoryTags.forEach(t => t.classList.remove('active'));
+            e.target.classList.add('active');
+            const category = e.target.textContent.toLowerCase();
+            storyManager.loadStories(category);
+        });
+    });
+
+    // Initialize auth state listener
+    onAuthStateChanged(auth, (user) => {
+        currentUser = user;
+        const signInButton = document.querySelector('.button-secondary');
+        
+        if (user) {
+            console.log('User signed in:', user.uid);
+            signInButton.textContent = 'Sign Out';
+            signInButton.addEventListener('click', () => auth.signOut());
+        } else {
+            console.log('User signed out');
+            signInButton.textContent = 'Sign In';
+            signInButton.addEventListener('click', () => window.location.href = 'index.html');
+        }
+    });
+});
+        
+    </script>
+</body>
 </html>
