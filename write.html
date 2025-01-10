@@ -222,11 +222,20 @@
         font-size: 0.9rem;
       }
 
-      .collaborator img {
-        width: 24px;
-        height: 24px;
-        border-radius: 50%;
-      }
+      .user-avatar, /* For any user avatars */
+.author-avatar, /* For contribution author avatars */
+.collaborator img, /* For active writers */
+.viewer img { /* For viewers */
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover; /* This ensures the image maintains aspect ratio */
+}
+
+.contribution .author-avatar {
+    width: 24px;
+    height: 24px;
+}
 
       .sidebar-card {
         background: white;
@@ -314,6 +323,12 @@
         margin-bottom: 1rem;
       }
 
+      .author-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
       .modal-buttons {
         display: flex;
         gap: 1rem;
@@ -338,17 +353,29 @@
       }
 
       .contribution {
-        position: relative;
-        padding: 1rem;
-        border-left: 3px solid var(--primary);
-        margin-bottom: 1rem;
-      }
+    border-left: 3px solid var(--primary);
+    padding: 1rem;
+    margin-bottom: 1rem;
+    background: white;
+    border-radius: 0 8px 8px 0;
+}
+
+contribution-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--secondary);
+}
 
       .reactions {
         display: flex;
         gap: 0.5rem;
         margin-top: 0.5rem;
       }
+
+      
 
       .reaction-button {
         background: none;
@@ -587,6 +614,7 @@
       </div>
     </div>
     <script type="module">
+      
       import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
       import {
         getAuth,
@@ -615,17 +643,10 @@
         databaseURL: 'https://scribblate-ce00a-default-rtdb.firebaseio.com',
       };
 
-      // At the top of your script, right after Firebase config
-      // At the top of your script
+      // Initialize Firebase
       const app = initializeApp(firebaseConfig);
       const auth = getAuth(app);
       const database = getDatabase(app);
-
-      try {
-        console.log('Firebase initialized successfully');
-      } catch (error) {
-        console.error('Firebase initialization error:', error);
-      }
 
       // App state
       let currentUser = null;
@@ -634,6 +655,7 @@
       let timeLeft = 45;
       let timer;
       let currentMood = 'creative';
+      let isInitialized = false;
 
       // Default prompts
       const defaultPrompts = {
@@ -664,400 +686,7 @@
         ],
       };
 
-      // Check authentication
-      // Upate the auth state observer
-      onAuthStateChanged(
-        auth,
-        (user) => {
-          console.log(
-            'Auth state changed:',
-            user ? 'User logged in' : 'No user'
-          );
-          if (user) {
-            console.log('User details:', {
-              uid: user.uid,
-              email: user.email,
-              displayName: user.displayName,
-            });
-            currentUser = user;
-            initializeAppFeatures(); // This will now only run after authentication
-          } else {
-            console.log('Redirecting to login page');
-            window.location.href = 'index.html';
-          }
-        },
-        (error) => {
-          console.error('Auth state error:', error);
-        }
-      );
-
-      // Initialize app
-      // Update initializeAppFeatures
-      let isInitialized = false;
-
-      async function initializeAppFeatures() {
-    if (isInitialized) return;
-
-    try {
-        if (!currentUser) {
-            throw new Error('User not authenticated');
-        }
-
-        // Test database access
-        const testRef = ref(database, `users/${currentUser.uid}/test`);
-        try {
-            await set(testRef, { timestamp: Date.now() });
-            await remove(testRef);
-            console.log('Database access verified');
-        } catch (error) {
-            console.error('Database access error:', error);
-            throw new Error('Database access denied');
-        }
-
-        // Initialize features
-        await loadUserCustomContent();
-        setupMoodButtons();
-        setupCustomPrompts();
-
-        // Get story information from localStorage
-        const savedStoryId = localStorage.getItem('storyId');
-        const isNewStory = localStorage.getItem('isNewStory') === 'true';
-        
-        // Clear localStorage
-        localStorage.removeItem('storyId');
-        localStorage.removeItem('isNewStory');
-
-        // Initialize story flow
-        if (isNewStory) {
-            await createNewStory();
-        } else if (savedStoryId) {
-            await joinExistingStory(savedStoryId);
-        } else {
-            // Default to creating new story if no context
-            await createNewStory();
-        }
-
-        isInitialized = true;
-        console.log('App initialization complete');
-
-    } catch (error) {
-        console.error('Error initializing app:', error);
-        const message = document.querySelector('.message');
-        message.innerHTML = `
-            <div class="error-message">
-                <i class="fas fa-exclamation-circle"></i>
-                <span>There was an error initializing the app. Please try again.</span>
-            </div>
-        `;
-    }
-}
-
-      // Load user's custom content
-      async function loadUserCustomContent() {
-        const customPromptsRef = ref(
-          database,
-          `users/${currentUser.uid}/customPrompts`
-        );
-        const customMoodsRef = ref(
-          database,
-          `users/${currentUser.uid}/customMoods`
-        );
-
-        // Load custom prompts
-        onValue(customPromptsRef, (snapshot) => {
-          const prompts = snapshot.val() || {};
-          updateCustomPromptsUI(prompts);
-        });
-
-        // Load custom moods
-        onValue(customMoodsRef, (snapshot) => {
-          const moods = snapshot.val() || {};
-          updateCustomMoodsUI(moods);
-        });
-      }
-
-      // Story Management
-      async function joinOrCreateStory() {
-        const storiesRef = ref(database, 'stories');
-        const activeStoriesRef = ref(database, 'activeStories');
-
-        // Try to join an active story
-        const activeStoriesSnapshot = await get(activeStoriesRef);
-        if (activeStoriesSnapshot.exists()) {
-          const activeStories = activeStoriesSnapshot.val();
-          currentStoryId = Object.keys(activeStories)[0];
-        } else {
-          // Create new story
-          const newStoryRef = push(storiesRef);
-          currentStoryId = newStoryRef.key;
-          await set(newStoryRef, {
-            status: 'active',
-            startedAt: Date.now(),
-            contributions: [],
-            participants: {
-              [currentUser.uid]: {
-                displayName: currentUser.displayName,
-                photoURL: currentUser.photoURL,
-                joinedAt: Date.now(),
-              },
-            },
-          });
-
-          // Mark as active
-          await set(ref(database, `activeStories/${currentStoryId}`), true);
-        }
-
-        // Listen for story updates
-        listenToStoryUpdates();
-      }
-
-      function updateStoryPreview(contributions) {
-        const preview = document.querySelector('.story-preview');
-        preview.innerHTML = Object.entries(contributions)
-          .map(
-            ([id, contribution]) => `
-        <div class="contribution">
-            <div class="contribution-header">
-                <span class="contribution-author">${
-                  contribution.userName
-                }</span>
-                <span class="contribution-time">${formatTime(
-                  contribution.timestamp
-                )}</span>
-            </div>
-            <p>${contribution.content}</p>
-            <div class="reactions">
-                <button class="reaction-button" onclick="addReaction('${id}', 'heart')">
-                    <i class="fas fa-heart"></i>
-                    <span class="reaction-count">${getReactionCount(
-                      contribution,
-                      'heart'
-                    )}</span>
-                </button>
-                <button class="reaction-button" onclick="addReaction('${id}', 'laugh')">
-                    <i class="fas fa-laugh"></i>
-                    <span class="reaction-count">${getReactionCount(
-                      contribution,
-                      'laugh'
-                    )}</span>
-                </button>
-                <button class="reaction-button" onclick="addReaction('${id}', 'wow')">
-                    <i class="fas fa-surprise"></i>
-                    <span class="reaction-count">${getReactionCount(
-                      contribution,
-                      'wow'
-                    )}</span>
-                </button>
-                <button class="reaction-button" onclick="addReaction('${id}', 'sad')">
-                    <i class="fas fa-sad-tear"></i>
-                    <span class="reaction-count">${getReactionCount(
-                      contribution,
-                      'sad'
-                    )}</span>
-                </button>
-                <button class="reaction-button" onclick="addReaction('${id}', 'thumbsup')">
-                    <i class="fas fa-thumbs-up"></i>
-                    <span class="reaction-count">${getReactionCount(
-                      contribution,
-                      'thumbsup'
-                    )}</span>
-                </button>
-            </div>
-        </div>
-    `
-          )
-          .join('');
-      }
-
-      function getReactionCount(contribution, type) {
-        return contribution.reactions?.[type]?.length || 0;
-      }
-
-      // Add this to your global window functions
-      window.addReaction = async (contributionId, reactionType) => {
-        const reactionRef = ref(
-          database,
-          `stories/${currentStoryId}/contributions/${contributionId}/reactions/${reactionType}`
-        );
-        const snapshot = await get(reactionRef);
-        const reactions = snapshot.val() || [];
-
-        const userIndex = reactions.indexOf(currentUser.uid);
-
-        if (userIndex > -1) {
-          // Remove reaction if already added
-          reactions.splice(userIndex, 1);
-        } else {
-          // Add reaction
-          reactions.push(currentUser.uid);
-
-          // Animate the reaction button
-          const button = document.querySelector(
-            `[onclick="addReaction('${contributionId}', '${reactionType}')"]`
-          );
-          button.classList.add('reaction-pop');
-          setTimeout(() => button.classList.remove('reaction-pop'), 300);
-        }
-
-        await set(reactionRef, reactions);
-      };
-
-      // Format timestamp
-      function formatTime(timestamp) {
-        const date = new Date(timestamp);
-        const now = new Date();
-        const diff = (now - date) / 1000; // difference in seconds
-
-        if (diff < 60) return 'just now';
-        if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-        if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-        return date.toLocaleDateString();
-      }
-
-      function listenToStoryUpdates() {
-        const storyRef = ref(database, `stories/${currentStoryId}`);
-        onValue(storyRef, (snapshot) => {
-          const story = snapshot.val();
-          if (story && story.contributions) {
-            const preview = Object.values(story.contributions)
-              .map((c) => c.content)
-              .join(' ');
-            document.querySelector('.story-preview').textContent = preview;
-          }
-
-          // Update collaborators
-          if (story.participants) {
-            updateCollaboratorsUI(story.participants);
-          }
-        });
-      }
-
-      function initializeViewerTracking() {
-        const viewersRef = ref(
-          database,
-          `stories/${currentStoryId}/viewers/${currentUser.uid}`
-        );
-        const disconnectRef = onDisconnect(viewersRef);
-
-        // Remove user when they disconnect
-        disconnectRef.remove();
-
-        // Add user as viewer
-        set(viewersRef, {
-          displayName: currentUser.displayName,
-          photoURL: currentUser.photoURL,
-          lastActive: Date.now(),
-          isTyping: false,
-        });
-
-        // Listen for viewer changes
-        const allViewersRef = ref(
-          database,
-          `stories/${currentStoryId}/viewers`
-        );
-        onValue(allViewersRef, (snapshot) => {
-          const viewers = snapshot.val() || {};
-          updateViewersUI(viewers);
-        });
-      }
-
-      async function loadCompletedStories() {
-        const storiesRef = ref(database, 'stories');
-        const completedStoriesQuery = query(
-          storiesRef,
-          orderByChild('status'),
-          equalTo('completed')
-        );
-
-        const snapshot = await get(completedStoriesQuery);
-        const stories = snapshot.val() || {};
-
-        const storiesList = document.getElementById('storiesList');
-        storiesList.innerHTML = Object.entries(stories)
-          .map(
-            ([id, story]) => `
-            <div class="story-card">
-                <div class="story-header">
-                    <h3>${story.title || 'Untitled Story'}</h3>
-                    <span class="story-date">${formatDate(
-                      story.completedAt
-                    )}</span>
-                </div>
-                <div class="story-preview">
-                    ${getStoryPreview(story.contributions)}
-                </div>
-                <div class="story-footer">
-                    <span>${
-                      Object.keys(story.contributions).length
-                    } contributions</span>
-                    <button onclick="viewFullStory('${id}')" class="view-story-btn">
-                        Read More
-                    </button>
-                </div>
-            </div>
-        `
-          )
-          .join('');
-      }
-
-      function getStoryPreview(contributions) {
-        const preview = Object.values(contributions)
-          .map((c) => c.content)
-          .join(' ');
-        return preview.slice(0, 200) + '...';
-      }
-
-      async function viewFullStory(storyId) {
-        // Show full story in a modal
-        const storyRef = ref(database, `stories/${storyId}`);
-        const snapshot = await get(storyRef);
-        const story = snapshot.val();
-
-        showStoryModal(story);
-      }
-
-      
-
-      function updateViewersUI(viewers) {
-        const container = document.getElementById('activeViewers');
-        const viewerCount = document.getElementById('viewerCount');
-
-        // Update count
-        viewerCount.textContent = Object.keys(viewers).length;
-
-        // Update viewer list
-        container.innerHTML = Object.entries(viewers)
-          .map(
-            ([uid, viewer]) => `
-            <div class="viewer">
-                <img src="${viewer.photoURL}" alt="${viewer.displayName}">
-                <span>${viewer.displayName}</span>
-                ${
-                  viewer.isTyping
-                    ? '<span class="typing-indicator">typing...</span>'
-                    : ''
-                }
-            </div>
-        `
-          )
-          .join('');
-      }
-
-      function setupMoodButtons() {
-        console.log('Setting up mood buttons');
-        const buttons = document.querySelectorAll(
-          '.mood-button:not(.add-mood-button)'
-        );
-        buttons.forEach((button) => {
-          button.addEventListener('click', () => {
-            console.log('Mood button clicked:', button.dataset.mood);
-            buttons.forEach((b) => b.classList.remove('active'));
-            button.classList.add('active');
-            currentMood = button.dataset.mood;
-            updatePrompt(currentMood);
-          });
-        });
-      }
+      // Achievements system
       const achievements = {
         firstStory: {
           id: 'firstStory',
@@ -1077,11 +706,810 @@
           description: 'Wrote between midnight and 4 AM',
           icon: 'fa-moon',
         },
-        // Add more achievements
       };
+
+      // Utility Functions
+      function formatTime(timestamp) {
+        const date = new Date(timestamp);
+        const now = new Date();
+        const diff = (now - date) / 1000;
+
+        if (diff < 60) return 'just now';
+        if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+        if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+        return date.toLocaleDateString();
+      }
+
+      function getStoryPreview(contributions) {
+        if (!contributions) return '';
+        const preview = Object.values(contributions)
+          .map((c) => c.content)
+          .join(' ');
+        return preview.slice(0, 200) + '...';
+      }
+
+      function updatePrompt(mood) {
+        const prompts = defaultPrompts[mood] || defaultPrompts.creative;
+        const randomPrompt =
+          prompts[Math.floor(Math.random() * prompts.length)];
+        const promptBanner = document.querySelector('.prompt-banner');
+        if (promptBanner) {
+          promptBanner.textContent = randomPrompt;
+        }
+      }
+
+      // Post contribution styles and HTML
+  
+
+      // PostContributionHandler Class
+      class PostContributionHandler {
+    constructor() {
+        this.container = null;
+        this.storyContainer = null;
+        this.initialized = false;
+        this.setupUI();
+    }
+
+    setupUI() {
+        try {
+            // Add styles if they don't exist
+            if (!document.querySelector('style[data-type="post-contribution"]')) {
+                const style = document.createElement('style');
+                style.setAttribute('data-type', 'post-contribution');
+                style.textContent = postContributionStyles;
+                document.head.appendChild(style);
+            }
+
+            // Add HTML if it doesn't exist
+            if (!document.querySelector('.post-contribution')) {
+                document.body.insertAdjacentHTML('beforeend', postContributionHTML);
+            }
+
+            // Initialize container references
+            this.container = document.querySelector('.post-contribution');
+            if (this.container) {
+                this.storyContainer = this.container.querySelector('.full-story');
+                this.initialized = true;
+            }
+        } catch (error) {
+            console.error('Error setting up PostContributionHandler:', error);
+            this.initialized = false;
+        }
+    }
+
+    async showPostContribution(contributionId) {
+        if (!this.initialized) {
+            this.setupUI();
+            if (!this.initialized) {
+                console.error('PostContributionHandler not properly initialized');
+                return;
+            }
+        }
+
+        try {
+            const storyRef = ref(database, `stories/${currentStoryId}`);
+            const snapshot = await get(storyRef);
+            const story = snapshot.val();
+
+            if (!story) return;
+
+            this.renderStory(story, contributionId);
+            this.container.classList.add('show');
+            await this.trackStoryView();
+        } catch (error) {
+            console.error('Error showing post-contribution:', error);
+        }
+    }
+
+    renderStory(story, highlightedContributionId) {
+        if (!this.storyContainer) {
+            console.error('Story container not found');
+            return;
+        }
+
+        const contributions = story.contributions || {};
+        const sortedContributions = Object.entries(contributions)
+            .sort(([, a], [, b]) => a.timestamp - b.timestamp);
+
+        this.storyContainer.innerHTML = sortedContributions
+            .map(([id, contribution]) => `
+                <div class="contribution ${id === highlightedContributionId ? 'contribution-highlight' : ''}">
+                    <div class="contribution-meta">
+                        <div class="author-info">
+                            <img src="${contribution.userPhoto}" alt="${contribution.userName}" class="author-avatar">
+                            <span>${contribution.userName}</span>
+                        </div>
+                        <span>${formatTime(contribution.timestamp)}</span>
+                    </div>
+                    <p>${contribution.content}</p>
+                    <div class="reactions">
+                        ${this.renderReactions(contribution.reactions || {}, id)}
+                    </div>
+                </div>
+            `).join('');
+    }
+
+    hide() {
+        if (this.container) {
+            this.container.classList.remove('show');
+        }
+    }
+}
+
+        
+
+      // StoryFlowManager Class
+      class StoryFlowManager {
+    constructor() {
+        this.currentPhase = null;
+        this.timeLeft = 45;
+        this.timer = null;
+        this.storyId = null;
+        // Don't create PostContributionHandler in constructor
+        this.postContributionHandler = null;
+    }
+
+    async initialize() {
+    try {
+        this.postContributionHandler = new PostContributionHandler();
+        
+        const savedStoryId = localStorage.getItem('storyId');
+        const isNewStory = localStorage.getItem('isNewStory') === 'true';
+
+        localStorage.removeItem('storyId');
+        localStorage.removeItem('isNewStory');
+
+        if (savedStoryId) {
+            // Joining existing story
+            const story = await this.joinExistingStory(savedStoryId);
+            this.storyId = savedStoryId;
+            currentStoryId = this.storyId;
+            
+            // Start with preview phase
+            await this.startPreviewPhase(story);
+        } else {
+            // Creating new story
+            const story = await this.createNewStory();
+            this.storyId = story.id;
+            currentStoryId = this.storyId;
+            
+            // Start with brainstorm phase
+            await this.startBrainstormPhase();
+        }
+
+        this.initializeCollaboration();
+        this.initializeViewerTracking();
+        this.setupStoryListeners();
+    } catch (error) {
+        console.error('Error initializing StoryFlowManager:', error);
+        throw error;
+    }
+}
+
+async startBrainstormPhase() {
+    this.currentPhase = 'brainstorm';
+    this.timeLeft = 45;
+    this.clearTimer();
+
+    const elements = this.getUIElements();
+
+    // Hide writing area during brainstorm
+    if (elements.writingArea) {
+        elements.writingArea.style.display = 'none';
+        elements.writingArea.value = '';
+    }
+
+    // Show preview but clear it
+    if (elements.preview) {
+        elements.preview.style.display = 'block';
+        elements.preview.innerHTML = '';
+    }
+
+    // Update UI messages
+    if (elements.message) {
+        elements.message.textContent = 'Take a moment to gather your thoughts...';
+    }
+
+    if (elements.prompt) {
+        const prompt = this.generatePrompt(currentMood);
+        elements.prompt.textContent = prompt;
+        
+        // Save prompt to story
+        if (this.storyId) {
+            await set(ref(database, `stories/${this.storyId}/prompt`), prompt);
+        }
+    }
+
+    this.startTimer(() => this.startPreviewPhase());
+    this.updatePhaseIndicator('brainstorm');
+}
+
+        async createNewStory() {
+          try {
+            const storiesRef = ref(database, 'stories');
+            const newStoryRef = push(storiesRef);
+
+            const storyData = {
+              createdAt: Date.now(),
+              status: 'active',
+              creator: {
+                uid: currentUser.uid,
+                displayName: currentUser.displayName,
+                photoURL: currentUser.photoURL,
+              },
+              currentMood,
+              prompt: this.generatePrompt(currentMood),
+              contributions: {},
+              participants: {
+                [currentUser.uid]: {
+                  joinedAt: Date.now(),
+                  isActive: true,
+                  displayName: currentUser.displayName,
+                  photoURL: currentUser.photoURL,
+                },
+              },
+            };
+
+            await set(newStoryRef, storyData);
+            return { id: newStoryRef.key, ...storyData };
+          } catch (error) {
+            console.error('Error creating new story:', error);
+            throw error;
+          }
+        }
+
+        async joinExistingStory(storyId) {
+          try {
+            const storyRef = ref(database, `stories/${storyId}`);
+            const snapshot = await get(storyRef);
+            const story = snapshot.val();
+
+            if (!story) throw new Error('Story not found');
+
+            await set(
+              ref(
+                database,
+                `stories/${storyId}/participants/${currentUser.uid}`
+              ),
+              {
+                joinedAt: Date.now(),
+                isActive: true,
+                displayName: currentUser.displayName,
+                photoURL: currentUser.photoURL,
+              }
+            );
+
+            return story;
+          } catch (error) {
+            console.error('Error joining story:', error);
+            throw error;
+          }
+        }
+
+        initializeCollaboration() {
+  const presenceRef = ref(database, '.info/connected');
+  onValue(presenceRef, (snapshot) => {
+    if (snapshot.val()) {
+      // Only add as participant if in writing phase
+      if (this.currentPhase === 'write') {
+        const userPresenceRef = ref(
+          database,
+          `stories/${this.storyId}/participants/${currentUser.uid}`
+        );
+
+        const disconnectRef = onDisconnect(userPresenceRef);
+        disconnectRef.remove();
+
+        set(userPresenceRef, {
+          displayName: currentUser.displayName,
+          photoURL: currentUser.photoURL,
+          lastActive: Date.now(),
+          isActive: true,
+          isWriter: true
+        });
+      }
+    }
+  });
+
+  this.setupStoryListeners();
+}
+
+setupStoryListeners() {
+    if (!this.storyId) return;
+    
+    // Listen for story updates
+    const storyRef = ref(database, `stories/${this.storyId}`);
+    onValue(storyRef, (snapshot) => {
+        const story = snapshot.val();
+        if (story) {
+            console.log('Story updated:', story);
+            // Update contributions preview
+            this.updateStoryPreview(story.contributions || {});
+            // Update phase if necessary
+            if (story.currentPhase && story.currentPhase !== this.currentPhase) {
+                this.handlePhaseTransition();
+            }
+        }
+    });
+}
+
+initializeViewerTracking() {
+  // Only track as viewer if NOT in writing phase
+  if (this.currentPhase !== 'write') {
+    const viewersRef = ref(
+      database,
+      `stories/${this.storyId}/viewers/${currentUser.uid}`
+    );
+    const disconnectRef = onDisconnect(viewersRef);
+    disconnectRef.remove();
+
+    set(viewersRef, {
+      displayName: currentUser.displayName,
+      photoURL: currentUser.photoURL,
+      lastActive: Date.now(),
+      isTyping: false
+    });
+  }
+
+  const allViewersRef = ref(database, `stories/${this.storyId}/viewers`);
+  onValue(allViewersRef, (snapshot) => {
+    const viewers = snapshot.val() || {};
+    // Filter out current writers from viewers list
+    const filteredViewers = Object.entries(viewers).reduce((acc, [uid, viewer]) => {
+      if (!document.querySelector(`#activeWriters .collaborator[data-uid="${uid}"]`)) {
+        acc[uid] = viewer;
+      }
+      return acc;
+    }, {});
+    updateViewersUI(filteredViewers);
+  });
+}
+
+        updateStoryPreview(contributions) {
+          const preview = document.querySelector('.story-preview');
+          if (!preview) return;
+
+          const sortedContributions = Object.entries(contributions).sort(
+            ([, a], [, b]) => a.timestamp - b.timestamp
+          );
+
+          preview.innerHTML = sortedContributions
+            .map(([id, contribution]) =>
+              this.formatContribution(id, contribution)
+            )
+            .join('');
+        }
+
+        formatContribution(id, contribution) {
+          return `
+            <div class="contribution">
+                <div class="contribution-meta">
+                    <div class="author-info">
+                        <img src="${contribution.userPhoto}" alt="${
+            contribution.userName
+          }" class="author-avatar">
+                        <span>${contribution.userName}</span>
+                    </div>
+                    <span class="timestamp">${formatTime(
+                      contribution.timestamp
+                    )}</span>
+                </div>
+                <div class="contribution-content">${contribution.content}</div>
+                <div class="reactions">${this.formatReactions(
+                  contribution.reactions,
+                  id
+                )}</div>
+            </div>
+        `;
+        }
+
+        formatReactions(reactions = {}, contributionId) {
+          const reactionTypes = {
+            heart: { icon: 'fa-heart', label: 'Love' },
+            laugh: { icon: 'fa-laugh', label: 'Haha' },
+            wow: { icon: 'fa-surprise', label: 'Wow' },
+            sad: { icon: 'fa-sad-tear', label: 'Sad' },
+            thumbsup: { icon: 'fa-thumbs-up', label: 'Like' },
+          };
+
+          return Object.entries(reactionTypes)
+            .map(([type, { icon }]) => {
+              const count = (reactions[type] || []).length;
+              const hasReacted = reactions[type]?.includes(currentUser.uid);
+              return `
+                    <button class="reaction-button ${
+                      hasReacted ? 'active' : ''
+                    }" 
+                            onclick="addReaction('${contributionId}', '${type}')">
+                        <i class="fas ${icon}"></i>
+                        <span class="reaction-count">${count}</span>
+                    </button>
+                `;
+            })
+            .join('');
+        }
+
+        async startPreviewPhase(story) {
+    this.currentPhase = 'preview';
+    this.timeLeft = 45;
+    this.clearTimer();
+
+    const elements = this.getUIElements();
+
+    // Fetch latest story data if we have an ID
+    let storyData = story;
+    if (this.storyId && !story) {
+        const storyRef = ref(database, `stories/${this.storyId}`);
+        const snapshot = await get(storyRef);
+        storyData = snapshot.val();
+    }
+
+    // Show preview with story content
+    if (elements.preview) {
+        elements.preview.style.display = 'block';
+        
+        // Format story content with contributions
+        const contributionsHtml = storyData?.contributions ? 
+            Object.entries(storyData.contributions)
+                .sort(([, a], [, b]) => a.timestamp - b.timestamp)
+                .map(([id, contribution]) => `
+                    <div class="contribution">
+                        <div class="contribution-meta">
+                            <div class="author-info">
+                                <img src="${contribution.userPhoto}" alt="${contribution.userName}" class="author-avatar">
+                                <span>${contribution.userName}</span>
+                            </div>
+                            <span class="timestamp">${formatTime(contribution.timestamp)}</span>
+                        </div>
+                        <div class="contribution-content">${contribution.content}</div>
+                    </div>
+                `).join('') : '';
+
+        elements.preview.innerHTML = `
+            <div class="story-content">
+                ${storyData?.prompt ? `
+                    <div class="story-prompt">
+                        <strong>Prompt:</strong> ${storyData.prompt}
+                    </div>
+                ` : ''}
+                ${contributionsHtml}
+            </div>
+        `;
+    }
+
+    // Hide writing area during preview
+    if (elements.writingArea) {
+        elements.writingArea.style.display = 'none';
+    }
+
+    // Update UI messages
+    if (elements.message) {
+        elements.message.textContent = 'Take a moment to read the story...';
+    }
+
+    // Update prompt banner
+    if (elements.prompt && storyData?.prompt) {
+        elements.prompt.textContent = storyData.prompt;
+    }
+
+    // Start timer for preview phase
+    this.startTimer(); // Remove callback here
+    this.updatePhaseIndicator('preview');
+}
+
+async startWritingPhase() {
+    console.log('Starting writing phase');
+    this.currentPhase = 'write';
+    this.timeLeft = 45;
+    this.clearTimer();
+
+    const elements = this.getUIElements();
+
+    // Hide preview, show writing area
+    if (elements.preview) {
+        elements.preview.style.display = 'none';
+    }
+    if (elements.writingArea) {
+        elements.writingArea.style.display = 'block';
+        elements.writingArea.value = '';
+        elements.writingArea.focus();
+    }
+
+    // Update message
+    if (elements.message) {
+        elements.message.textContent = "It's your turn to write!";
+    }
+
+    // Start timer
+    this.startTimer();
+    this.updatePhaseIndicator('write');
+
+    // Update Firebase status
+    if (this.storyId) {
+        await set(ref(database, `stories/${this.storyId}/currentPhase`), {
+            phase: 'write',
+            timestamp: serverTimestamp()
+        });
+    }
+}
+
+async handlePhaseTransition() {
+    if (!this.currentPhase) {
+        await this.startBrainstormPhase();
+        return;
+    }
+
+    try {
+        switch(this.currentPhase) {
+            case 'brainstorm':
+                console.log('Transitioning from brainstorm to preview');
+                await this.startPreviewPhase();
+                break;
+            case 'preview':
+                console.log('Transitioning from preview to write');
+                await this.startWritingPhase();
+                break;
+            case 'write':
+                console.log('Transitioning from write phase');
+                await this.handleTimeUp();
+                break;
+            default:
+                console.log('Starting new round');
+                await this.startBrainstormPhase();
+        }
+    } catch (error) {
+        console.error('Error in phase transition:', error);
+        ErrorHandler.handleError(error, 'phase_transition');
+    }
+}
+
+        updatePhaseIndicator(phase) {
+          const dots = document.querySelectorAll('.phase-dots .dot');
+          const phases = ['brainstorm', 'write', 'preview'];
+          const currentIndex = phases.indexOf(phase);
+
+          dots.forEach((dot, index) => {
+            dot.classList.toggle('active', index === currentIndex);
+          });
+        }
+
+        getUIElements() {
+          return {
+            preview: document.querySelector('.story-preview'),
+            writingArea: document.querySelector('.writing-area'),
+            message: document.querySelector('.message'),
+            prompt: document.querySelector('.prompt-banner'),
+          };
+        }
+
+        clearTimer() {
+          if (this.timer) {
+            clearInterval(this.timer);
+            this.timer = null;
+          }
+        }
+
+        startTimer(callback) {
+    const timerDisplay = document.getElementById('timerDisplay');
+
+    this.timer = setInterval(() => {
+        this.timeLeft--;
+        if (timerDisplay) timerDisplay.textContent = this.timeLeft;
+
+        if (this.timeLeft <= 0) {
+            this.clearTimer();
+            this.handlePhaseTransition(); // Changed from callback() to this.handlePhaseTransition()
+        }
+    }, 1000);
+
+    if (timerDisplay) timerDisplay.textContent = this.timeLeft;
+}
+
+        
+
+        formatStoryContent(story) {
+          return `
+            <div class="story-prompt">${story.prompt}</div>
+            ${Object.entries(story.contributions || {})
+              .sort(([, a], [, b]) => a.timestamp - b.timestamp)
+              .map(([id, contribution]) =>
+                this.formatContribution(id, contribution)
+              )
+              .join('')}
+        `;
+        }
+
+        generatePrompt(mood) {
+          const prompts = defaultPrompts[mood] || defaultPrompts.creative;
+          return prompts[Math.floor(Math.random() * prompts.length)];
+        }
+
+        async handleTimeUp() {
+    console.log('Time is up for phase:', this.currentPhase);
+    
+    if (this.currentPhase === 'write') {
+        await this.submitContribution();
+        // After submitting, start a new round
+        await this.startBrainstormPhase();
+    } else if (this.currentPhase === 'preview') {
+        await this.startWritingPhase();
+    } else if (this.currentPhase === 'brainstorm') {
+        await this.startPreviewPhase();
+    }
+}
+
+async submitContribution() {
+    const writingArea = document.querySelector('.writing-area');
+    if (!writingArea) return;
+
+    const content = writingArea.value.trim();
+    if (!content) return;
+
+    try {
+        const contributionRef = push(ref(database, `stories/${this.storyId}/contributions`));
+        const contribution = {
+            content,
+            userId: currentUser.uid,
+            userName: currentUser.displayName,
+            userPhoto: currentUser.photoURL,
+            timestamp: Date.now()
+        };
+
+        await set(contributionRef, contribution);
+        await checkAchievements(content);
+        
+        // Show success message
+        const message = document.querySelector('.message');
+        const waitMessage = document.querySelector('.wait-message');
+        if (message) message.style.display = 'none';
+        if (waitMessage) {
+            waitMessage.style.display = 'flex';
+            setTimeout(() => {
+                waitMessage.style.display = 'none';
+                if (message) message.style.display = 'block';
+            }, 2000);
+        }
+
+        // Hide writing area
+        writingArea.style.display = 'none';
+
+    } catch (error) {
+        console.error('Error submitting contribution:', error);
+        throw error;
+    }
+}
+      }
+
+      // UI Functions
+      async function setupCustomPrompts() {
+        if (!currentUser) return;
+
+        const promptsRef = ref(
+          database,
+          `users/${currentUser.uid}/customPrompts`
+        );
+        const snapshot = await get(promptsRef);
+        const customPrompts = snapshot.val() || {};
+        updateCustomPromptsUI(customPrompts);
+      }
+
+      function updateCustomPromptsUI(prompts) {
+        const container = document.querySelector('.custom-prompts');
+        if (!container) return;
+
+        container.innerHTML = Object.entries(prompts)
+          .map(
+            ([id, prompt]) => `
+            <div class="prompt-item">
+                <span>${prompt.text}</span>
+                <button onclick="deleteCustomPrompt('${id}')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `
+          )
+          .join('');
+      }
+
+      function updateCustomMoodsUI(moods) {
+        const container = document.querySelector('.mood-selector');
+        const addButton = container.querySelector('.add-mood-button');
+        if (!container || !addButton) return;
+
+        // Remove old custom moods
+        document
+          .querySelectorAll('.mood-button.custom')
+          .forEach((btn) => btn.remove());
+
+        // Add new custom moods before the add button
+        Object.entries(moods).forEach(([id, mood]) => {
+          const button = document.createElement('button');
+          button.className = 'mood-button custom';
+          button.dataset.mood = mood.name.toLowerCase();
+          button.innerHTML = `
+            <i class="fas fa-star"></i>
+            ${mood.name}
+        `;
+          button.addEventListener('click', () => {
+            document
+              .querySelectorAll('.mood-button')
+              .forEach((b) => b.classList.remove('active'));
+            button.classList.add('active');
+            currentMood = mood.name.toLowerCase();
+            updatePrompt(currentMood);
+          });
+          container.insertBefore(button, addButton);
+        });
+      }
+
+      function setupMoodButtons() {
+        const buttons = document.querySelectorAll(
+          '.mood-button:not(.add-mood-button)'
+        );
+        buttons.forEach((button) => {
+          button.addEventListener('click', () => {
+            buttons.forEach((b) => b.classList.remove('active'));
+            button.classList.add('active');
+            currentMood = button.dataset.mood;
+            updatePrompt(currentMood);
+          });
+        });
+
+        // Set initial active mood
+        const initialMoodButton = document.querySelector(
+          `.mood-button[data-mood="${currentMood}"]`
+        );
+        if (initialMoodButton) {
+          initialMoodButton.classList.add('active');
+        }
+      }
+
+      function updateCollaboratorsUI(participants) {
+        const container = document.getElementById('activeWriters');
+        if (!container) return;
+
+        container.innerHTML = Object.entries(participants)
+          .map(
+            ([uid, user]) => `
+            <div class="collaborator">
+                <img src="${user.photoURL}" alt="${user.displayName}">
+                <span>${user.displayName}</span>
+            </div>
+        `
+          )
+          .join('');
+      }
+
+      function updateViewersUI(viewers) {
+        const container = document.getElementById('activeViewers');
+        const viewerCount = document.getElementById('viewerCount');
+
+        if (viewerCount) {
+          viewerCount.textContent = Object.keys(viewers).length;
+        }
+
+        if (container) {
+          container.innerHTML = Object.entries(viewers)
+            .map(
+              ([uid, viewer]) => `
+                <div class="viewer">
+                    <img src="${viewer.photoURL}" alt="${viewer.displayName}">
+                    <span>${viewer.displayName}</span>
+                    ${
+                      viewer.isTyping
+                        ? '<span class="typing-indicator">typing...</span>'
+                        : ''
+                    }
+                </div>
+            `
+            )
+            .join('');
+        }
+      }
 
       
 
+      // Achievement Functions
       async function checkAchievements(contribution) {
         const userAchievementsRef = ref(
           database,
@@ -1093,7 +1521,6 @@
         const wordCount = contribution.split(/\s+/).length;
         const hour = new Date().getHours();
 
-        // Check for achievements
         if (!earnedAchievements.firstStory) {
           await unlockAchievement('firstStory');
         }
@@ -1106,6 +1533,54 @@
           await unlockAchievement('nightOwl');
         }
       }
+
+      class TimerManager {
+    constructor(storyId) {
+        this.storyId = storyId;
+        this.timerRef = ref(database, `stories/${storyId}/timer`);
+    }
+
+    async startTimer() {
+        const timestamp = Date.now();
+        await set(this.timerRef, {
+            startTime: timestamp,
+            endTime: timestamp + 45000
+        });
+    }
+
+    initializeTimerSync() {
+        onValue(this.timerRef, (snapshot) => {
+            const timerData = snapshot.val();
+            if (timerData) {
+                const remaining = Math.floor((timerData.endTime - Date.now()) / 1000);
+                this.updateTimerDisplay(Math.max(0, remaining));
+            }
+        });
+    }
+}
+
+class PhaseManager {
+    constructor(storyId) {
+        this.storyId = storyId;
+        this.phaseRef = ref(database, `stories/${storyId}/phase`);
+    }
+
+    async setPhase(phase) {
+        await set(this.phaseRef, {
+            currentPhase: phase,
+            timestamp: serverTimestamp()
+        });
+    }
+
+    listenToPhaseChanges(callback) {
+        onValue(this.phaseRef, (snapshot) => {
+            const phaseData = snapshot.val();
+            if (phaseData) {
+                callback(phaseData.currentPhase);
+            }
+        });
+    }
+}
 
       async function unlockAchievement(achievementId) {
         const achievement = achievements[achievementId];
@@ -1144,781 +1619,280 @@
         }, 3000);
       }
 
-      // Add these missing functions
-      function setupCustomPrompts() {
-        const customPrompts = currentUser.customPrompts || {};
-        updateCustomPromptsUI(customPrompts);
-      }
-
-      function updatePrompt(mood) {
-        const prompts = defaultPrompts[mood] || defaultPrompts.creative;
-        const randomPrompt =
-          prompts[Math.floor(Math.random() * prompts.length)];
-        const promptBanner = document.querySelector('.prompt-banner');
-        promptBanner.textContent = randomPrompt;
-        console.log('Updated prompt:', randomPrompt); // Debug log
-      }
-
-      function nextPhase() {
-        console.log('Moving to next phase from:', currentPhase); // Debug log
-        clearInterval(timer);
-
-        const phases = ['brainstorm', 'write', 'wait'];
-        const currentIndex = phases.indexOf(currentPhase);
-        currentPhase = phases[(currentIndex + 1) % phases.length];
-
-        console.log('New phase:', currentPhase); // Debug log
-
-        updatePhaseUI();
-
-        if (currentPhase !== 'wait') {
-          timeLeft = 45;
-          startTimer();
-        }
-      }
-
-      function updatePhaseUI() {
-        console.log('Updating phase UI:', currentPhase); // Debug log
-
-        const elements = {
-          brainstorm: document.querySelector('.brainstorm-content'),
-          writing: document.querySelector('.writing-area'),
-          wait: document.querySelector('.wait-message'),
-          preview: document.querySelector('.story-preview'),
-          message: document.querySelector('.message'),
-        };
-
-        // Hide all elements first
-        elements.brainstorm.style.display = 'none';
-        elements.writing.style.display = 'none';
-        elements.wait.style.display = 'none';
-
-        // Show current phase element
-        switch (currentPhase) {
-          case 'brainstorm':
-            elements.brainstorm.style.display = 'block';
-            elements.message.textContent =
-              'Take a moment to gather your thoughts...';
-            updatePrompt(currentMood);
-            break;
-          case 'write':
-            elements.writing.style.display = 'block';
-            elements.writing.focus();
-            elements.message.textContent = 'Start writing...';
-            break;
-          case 'wait':
-            elements.wait.style.display = 'block';
-            elements.message.style.display = 'none';
-            setTimeout(() => startNewStory(), 3000);
-            break;
-        }
-
-        // Update dots
-        const dots = document.querySelectorAll('.dot');
-        dots.forEach((dot, index) => {
-          dot.classList.toggle(
-            'active',
-            index === ['brainstorm', 'write', 'wait'].indexOf(currentPhase)
-          );
-        });
-      }
-
-      // Real-time collaboration
-      function initializeCollaboration() {
-        const presenceRef = ref(database, '.info/connected');
-        onValue(presenceRef, (snapshot) => {
-          if (snapshot.val()) {
-            const userPresenceRef = ref(
-              database,
-              `stories/${currentStoryId}/participants/${currentUser.uid}`
-            );
-
-            // When I disconnect, remove me
-            const disconnectRef = onDisconnect(userPresenceRef);
-            disconnectRef.remove();
-
-            // Add me to participants
-            set(userPresenceRef, {
-              displayName: currentUser.displayName,
-              photoURL: currentUser.photoURL,
-              lastActive: Date.now(),
-            });
-
-            // Rest of the code remains the same...
-          }
-        });
-      }
-
-      function updateTypingIndicators(typing) {
-        const container = document.getElementById('typingIndicators');
-        const typingUsers = Object.values(typing).filter(
-          (user) => user.displayName !== currentUser.displayName
-        );
-
-        if (typingUsers.length > 0) {
-          container.textContent = `${typingUsers
-            .map((u) => u.displayName)
-            .join(', ')} ${
-            typingUsers.length === 1 ? 'is' : 'are'
-          } thinking...`;
-          container.style.display = 'block';
-        } else {
-          container.style.display = 'none';
-        }
-      }
-
-      function updateCollaboratorsUI(participants) {
-        const container = document.getElementById('activeWriters');
-        container.innerHTML = Object.entries(participants)
-          .map(
-            ([uid, user]) => `
-                <div class="collaborator">
-                    <img src="${user.photoURL}" alt="${user.displayName}">
-                    <span>${user.displayName}</span>
-                </div>
-            `
-          )
-          .join('');
-      }
-
-      // Custom Prompts Management
-      async function saveCustomPrompt() {
-        const promptInput = document.getElementById('newPromptInput');
-        const prompt = promptInput.value.trim();
-
-        if (prompt) {
-          const promptRef = ref(
-            database,
-            `users/${currentUser.uid}/customPrompts`
-          );
-          const newPromptRef = push(promptRef);
-          await set(newPromptRef, {
-            text: prompt,
-            createdAt: Date.now(),
-          });
-
-          promptInput.value = '';
-          closeModal('addPromptModal');
-        }
-      }
-
-      function updateCustomPromptsUI(prompts) {
-        const container = document.querySelector('.custom-prompts');
-        container.innerHTML = Object.entries(prompts)
-          .map(
-            ([id, prompt]) => `
-                <div class="prompt-item">
-                    <span>${prompt.text}</span>
-                    <button onclick="deleteCustomPrompt('${id}')">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-            `
-          )
-          .join('');
-      }
-
-      // Custom Moods Management
-      async function saveCustomMood() {
-        const moodInput = document.getElementById('newMoodInput');
-        const mood = moodInput.value.trim();
-
-        if (mood) {
-          const moodRef = ref(database, `users/${currentUser.uid}/customMoods`);
-          const newMoodRef = push(moodRef);
-          await set(newMoodRef, {
-            name: mood,
-            createdAt: Date.now(),
-          });
-
-          moodInput.value = '';
-          closeModal('addMoodModal');
-        }
-      }
-
-      function updateCustomMoodsUI(moods) {
-        const container = document.querySelector('.mood-selector');
-        const addButton = container.querySelector('.add-mood-button');
-
-        // Remove old custom moods
-        document
-          .querySelectorAll('.mood-button.custom')
-          .forEach((btn) => btn.remove());
-
-        // Add new custom moods before the add button
-        Object.entries(moods).forEach(([id, mood]) => {
-          const button = document.createElement('button');
-          button.className = 'mood-button custom';
-          button.innerHTML = `
-                <i class="fas fa-star"></i>
-                ${mood.name}
-            `;
-          container.insertBefore(button, addButton);
-        });
-      }
-
-      // Timer and Phase Management
-      
-
-      // First, add this CSS to your existing styles
-const postContributionStyles = `
-  .post-contribution {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: var(--background);
-    z-index: 1000;
-    display: none;
-    animation: slideIn 0.3s ease-out;
-  }
-
-  .post-contribution.show {
-    display: flex;
-    flex-direction: column;
-  }
-
-  @keyframes slideIn {
-    from {
-      transform: translateY(20px);
-      opacity: 0;
-    }
-    to {
-      transform: translateY(0);
-      opacity: 1;
-    }
-  }
-
-  .post-contribution-header {
-    padding: 2rem;
-    text-align: center;
-    background: var(--card-bg);
-    box-shadow: var(--card-shadow);
-  }
-
-  .post-contribution-title {
-    font-size: 1.5rem;
-    color: var(--text);
-    margin-bottom: 1rem;
-  }
-
-  .post-contribution-subtitle {
-    color: var(--secondary);
-    margin-bottom: 2rem;
-  }
-
-  .post-contribution-content {
-    flex: 1;
-    padding: 2rem;
-    overflow-y: auto;
-  }
-
-  .full-story {
-    max-width: 800px;
-    margin: 0 auto;
-    background: var(--card-bg);
-    padding: 2rem;
-    border-radius: 12px;
-    box-shadow: var(--card-shadow);
-  }
-
-  .contribution-highlight {
-    border-left: 4px solid var(--primary);
-    padding-left: 1rem;
-    margin: 1rem 0;
-    background: rgba(65, 105, 225, 0.05);
-    animation: highlight 1s ease-out;
-  }
-
-  @keyframes highlight {
-    from {
-      background-color: rgba(65, 105, 225, 0.2);
-    }
-    to {
-      background-color: rgba(65, 105, 225, 0.05);
-    }
-  }
-
-  .post-contribution-actions {
-    display: flex;
-    justify-content: center;
-    gap: 1rem;
-    padding: 2rem;
-    background: var(--card-bg);
-    box-shadow: var(--card-shadow);
-  }
-
-  .contribution-meta {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 0.5rem;
-    font-size: 0.9rem;
-    color: var(--secondary);
-  }
-
-  .author-info {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-
-  .author-avatar {
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-  }
-`;
-
-// Add the HTML structure to your page
-const postContributionHTML = `
-  <div class="post-contribution">
-    <div class="post-contribution-header">
-      <h2 class="post-contribution-title">Story Updated!</h2>
-      <p class="post-contribution-subtitle">Your contribution has been added to the story</p>
-    </div>
-    
-    <div class="post-contribution-content">
-      <div class="full-story">
-        <!-- Story content will be inserted here -->
-      </div>
-    </div>
-
-    <div class="post-contribution-actions">
-      <button class="button button-primary" onclick="continueCollaborating()">
-        <i class="fas fa-pen"></i>
-        Continue Collaborating
-      </button>
-      <button class="button button-secondary" onclick="startNewStory()">
-        <i class="fas fa-plus"></i>
-        Start New Story
-      </button>
-    </div>
-  </div>
-`;
-
-// Add this to your JavaScript
-class PostContributionHandler {
-    constructor() {
-        this.setupUI();
-    }
-
-    setupUI() {
-        // Add styles
-        const style = document.createElement('style');
-        style.textContent = postContributionStyles;
-        document.head.appendChild(style);
-
-        // Add HTML
-        document.body.insertAdjacentHTML('beforeend', postContributionHTML);
-
-        // Initialize container
-        this.container = document.querySelector('.post-contribution');
-        this.storyContainer = this.container.querySelector('.full-story');
-    }
-
-    async showPostContribution(contributionId) {
-        try {
-            // Get the full story
-            const storyRef = ref(database, `stories/${currentStoryId}`);
-            const snapshot = await get(storyRef);
-            const story = snapshot.val();
-
-            if (!story) return;
-
-            // Render the full story with the new contribution highlighted
-            this.renderStory(story, contributionId);
-            
-            // Show the post-contribution screen
-            this.container.classList.add('show');
-
-            // Track story view
-            this.trackStoryView();
-        } catch (error) {
-            console.error('Error showing post-contribution:', error);
-        }
-    }
-
-    renderStory(story, highlightedContributionId) {
-        const contributions = story.contributions || {};
-        const sortedContributions = Object.entries(contributions)
-            .sort(([, a], [, b]) => a.timestamp - b.timestamp);
-
-        this.storyContainer.innerHTML = sortedContributions
-            .map(([id, contribution]) => `
-                <div class="contribution ${id === highlightedContributionId ? 'contribution-highlight' : ''}">
-                    <div class="contribution-meta">
-                        <div class="author-info">
-                            <img src="${contribution.userPhoto || getUserPhoto(contribution.userId)}" 
-                                 alt="${contribution.userName}"
-                                 class="author-avatar">
-                            <span>${contribution.userName}</span>
-                        </div>
-                        <span>${formatTime(contribution.timestamp)}</span>
-                    </div>
-                    <p>${contribution.content}</p>
-                    <div class="reactions">
-                        ${this.renderReactions(contribution.reactions || {}, id)}
-                    </div>
-                </div>
-            `).join('');
-    }
-
-    renderReactions(reactions, contributionId) {
-        const reactionTypes = {
-            heart: { icon: 'fa-heart', label: 'Love' },
-            laugh: { icon: 'fa-laugh', label: 'Haha' },
-            wow: { icon: 'fa-surprise', label: 'Wow' },
-            sad: { icon: 'fa-sad-tear', label: 'Sad' },
-            thumbsup: { icon: 'fa-thumbs-up', label: 'Like' }
-        };
-
-        return Object.entries(reactionTypes)
-            .map(([type, { icon, label }]) => {
-                const count = (reactions[type] || []).length;
-                const hasReacted = reactions[type]?.includes(currentUser.uid);
-                return `
-                    <button class="reaction-button ${hasReacted ? 'active' : ''}"
-                            onclick="addReaction('${contributionId}', '${type}')">
-                        <i class="fas ${icon}"></i>
-                        <span class="reaction-count">${count}</span>
-                    </button>
-                `;
-            }).join('');
-    }
-
-    async trackStoryView() {
+      // Content Management Functions
+      async function loadUserCustomContent() {
         if (!currentUser) return;
 
-        const viewRef = ref(database, `stories/${currentStoryId}/views/${currentUser.uid}`);
-        await set(viewRef, {
-            timestamp: Date.now(),
-            userId: currentUser.uid,
-            userName: currentUser.displayName
+        const customPromptsRef = ref(
+          database,
+          `users/${currentUser.uid}/customPrompts`
+        );
+        const customMoodsRef = ref(
+          database,
+          `users/${currentUser.uid}/customMoods`
+        );
+
+        onValue(customPromptsRef, (snapshot) => {
+          const prompts = snapshot.val() || {};
+          updateCustomPromptsUI(prompts);
         });
-    }
 
-    hide() {
-        this.container.classList.remove('show');
-    }
-}
-
-// Update your submitContribution function
-
-
-// Add these functions to handle post-contribution actions
-window.continueCollaborating = () => {
-    const postContribution = document.querySelector('.post-contribution');
-    postContribution.classList.remove('show');
-    startNewRound();
-};
-
-class StoryFlowManager {
-    constructor() {
-        this.currentPhase = null;
-        this.timeLeft = 45;
-        this.timer = null;
-        this.storyId = null;
-        
-        // Get story information from localStorage
-        const savedStoryId = localStorage.getItem('storyId');
-        this.isNewStory = localStorage.getItem('isNewStory') === 'true';
-        
-        // Clear localStorage
-        localStorage.removeItem('storyId');
-        localStorage.removeItem('isNewStory');
-
-        // Initialize with saved story ID if exists
-        this.initializeStory(savedStoryId);
-    }
-
-    async initializeStory(storyId = null) {
-        if (this.isNewStory) {
-            await this.createNewStory();
-        } else {
-            await this.joinExistingStory(storyId);
-        }
-    }
-
-    async createNewStory() {
-        try {
-            const storiesRef = ref(database, 'stories');
-            const newStoryRef = push(storiesRef);
-            this.storyId = newStoryRef.key;
-
-            const storyData = {
-                createdAt: Date.now(),
-                status: 'active',
-                creator: {
-                    uid: currentUser.uid,
-                    displayName: currentUser.displayName,
-                    photoURL: currentUser.photoURL
-                },
-                currentMood: currentMood,
-                prompt: this.generatePrompt(currentMood),
-                contributions: {},
-                participants: {
-                    [currentUser.uid]: {
-                        joinedAt: Date.now(),
-                        isActive: true
-                    }
-                }
-            };
-
-            await set(newStoryRef, storyData);
-            this.startWritingPhase();
-
-        } catch (error) {
-            console.error('Error creating new story:', error);
-            alert('Error creating new story. Please try again.');
-        }
-    }
-
-    async joinExistingStory(storyId) {
-        try {
-            this.storyId = storyId;
-            const storyRef = ref(database, `stories/${storyId}`);
-            const snapshot = await get(storyRef);
-            const story = snapshot.val();
-
-            if (!story) throw new Error('Story not found');
-
-            // Join as participant
-            await set(ref(database, `stories/${storyId}/participants/${currentUser.uid}`), {
-                joinedAt: Date.now(),
-                isActive: true
-            });
-
-            // Start with preview phase
-            this.startPreviewPhase(story);
-
-        } catch (error) {
-            console.error('Error joining story:', error);
-            alert('Error joining story. Please try again.');
-            window.location.href = '/index.html';
-        }
-    }
-
-    startPreviewPhase(story) {
-        this.currentPhase = 'preview';
-        this.timeLeft = 45;
-        clearInterval(this.timer);
-
-        const elements = {
-            preview: document.querySelector('.story-preview'),
-            writingArea: document.querySelector('.writing-area'),
-            message: document.querySelector('.message'),
-            prompt: document.querySelector('.prompt-banner')
-        };
-
-        // Update UI
-        if (elements.preview) {
-            elements.preview.style.display = 'block';
-            elements.preview.innerHTML = this.formatStoryContent(story);
-        }
-        if (elements.writingArea) {
-            elements.writingArea.style.display = 'none';
-        }
-        if (elements.message) {
-            elements.message.textContent = 'Take a moment to read the story...';
-        }
-        if (elements.prompt) {
-            elements.prompt.textContent = story.prompt || 'Loading prompt...';
-        }
-
-        this.startTimer(() => this.startWritingPhase());
-    }
-
-    startWritingPhase() {
-        this.currentPhase = 'write';
-        this.timeLeft = 45;
-        clearInterval(this.timer);
-
-        const elements = {
-            preview: document.querySelector('.story-preview'),
-            writingArea: document.querySelector('.writing-area'),
-            message: document.querySelector('.message')
-        };
-
-        // Update UI
-        if (elements.preview) elements.preview.style.display = 'none';
-        if (elements.writingArea) {
-            elements.writingArea.style.display = 'block';
-            elements.writingArea.value = ''; // Clear any previous content
-            elements.writingArea.focus();
-        }
-        if (elements.message) {
-            elements.message.textContent = "It's your turn to write!";
-        }
-
-        this.startTimer(() => this.handleTimeUp());
-    }
-
-    startTimer(callback) {
-        const timerDisplay = document.getElementById('timerDisplay');
-        
-        this.timer = setInterval(() => {
-            this.timeLeft--;
-            if (timerDisplay) timerDisplay.textContent = this.timeLeft;
-
-            if (this.timeLeft <= 0) {
-                clearInterval(this.timer);
-                callback();
-            }
-        }, 1000);
-
-        if (timerDisplay) timerDisplay.textContent = this.timeLeft;
-    }
-
-    formatStoryContent(story) {
-        const contributions = Object.entries(story.contributions || {})
-            .sort(([, a], [, b]) => a.timestamp - b.timestamp);
-
-        return `
-            <div class="story-prompt">${story.prompt}</div>
-            ${contributions.map(([id, contribution]) => `
-                <div class="contribution">
-                    <div class="contribution-meta">
-                        <div class="author-info">
-                            <img src="${contribution.userPhoto}" alt="${contribution.userName}" class="author-avatar">
-                            <span class="author-name">${contribution.userName}</span>
-                        </div>
-                        <span class="timestamp">${formatTime(contribution.timestamp)}</span>
-                    </div>
-                    <div class="contribution-content">${contribution.content}</div>
-                </div>
-            `).join('')}
-        `;
-    }
-
-    generatePrompt(mood) {
-        const prompts = defaultPrompts[mood] || defaultPrompts.creative;
-        return prompts[Math.floor(Math.random() * prompts.length)];
-    }
-
-    async handleTimeUp() {
-        if (this.currentPhase === 'write') {
-            await this.submitContribution();
-        }
-    }
-
-    async submitContribution() {
-        const writingArea = document.querySelector('.writing-area');
-        if (!writingArea) return;
-
-        const content = writingArea.value.trim();
-        if (!content) return;
-
-        try {
-            const contributionRef = push(ref(database, `stories/${this.storyId}/contributions`));
-            const contribution = {
-                content,
-                userId: currentUser.uid,
-                userName: currentUser.displayName,
-                userPhoto: currentUser.photoURL,
-                timestamp: Date.now()
-            };
-
-            await set(contributionRef, contribution);
-            
-            // Show post-contribution view
-            const postContributionHandler = new PostContributionHandler();
-            await postContributionHandler.showPostContribution(this.storyId, contributionRef.key);
-
-        } catch (error) {
-            console.error('Error submitting contribution:', error);
-            alert('Error submitting contribution. Please try again.');
-        }
-    }
-}
-
-window.startNewStory = async () => {
-    try {
-        // Leave current story
-        await leaveCurrentStory();
-        
-        // Create or join new story
-        const newStory = await createOrJoinStorySession(currentUser.uid);
-        currentStoryId = newStory.id;
-        
-        // Reset UI
-        const postContribution = document.querySelector('.post-contribution');
-        postContribution.classList.remove('show');
-        
-        // Initialize new story
-        initializeStory();
-    } catch (error) {
-        console.error('Error starting new story:', error);
-        alert('Error starting new story. Please try again.');
-    }
-};
-
-async function leaveCurrentStory() {
-    if (!currentStoryId || !currentUser) return;
-    
-    const participantRef = ref(database, `stories/${currentStoryId}/participants/${currentUser.uid}`);
-    await remove(participantRef);
-}
-
-function startTimer() {
-    clearInterval(timer);
-    timeLeft = 45;
-    document.getElementById('timerDisplay').textContent = timeLeft;
-
-    timer = setInterval(() => {
-        timeLeft--;
-        document.getElementById('timerDisplay').textContent = timeLeft;
-
-        if (timeLeft <= 0) {
-            if (currentPhase === 'write') {
-                submitContribution();
-            }
-            nextPhase();
-        }
-    }, 1000);
-}
-
-function startNewRound() {
-    currentPhase = 'brainstorm';
-    timeLeft = 45;
-    updatePhaseUI();
-    startTimer();
-}
-
-
-
-      function showSuccessAnimation() {
-        const message = document.querySelector('.message');
-        message.innerHTML = `
-        <div class="success-message animate__animated animate__bounceIn">
-            <i class="fas fa-check-circle pulse"></i>
-            <div class="success-details">
-                <span class="animate__animated animate__fadeInUp">Great job!</span>
-                <span class="animate__animated animate__fadeInUp animate__delay-1s">
-                    Your contribution has been added to the story
-                </span>
-            </div>
-        </div>
-    `;
+        onValue(customMoodsRef, (snapshot) => {
+          const moods = snapshot.val() || {};
+          updateCustomMoodsUI(moods);
+        });
       }
 
-      
+      async function saveCustomPrompt() {
+        const promptInput = document.getElementById('newPromptInput');
+        if (!promptInput || !currentUser) return;
 
-      // Make functions available globally
-      window.showAddPromptModal = () =>
-        (document.getElementById('addPromptModal').style.display = 'flex');
-      window.showAddMoodModal = () =>
-        (document.getElementById('addMoodModal').style.display = 'flex');
-      window.closeModal = (id) =>
-        (document.getElementById(id).style.display = 'none');
+        const prompt = promptInput.value.trim();
+        if (prompt) {
+          try {
+            const promptRef = ref(
+              database,
+              `users/${currentUser.uid}/customPrompts`
+            );
+            const newPromptRef = push(promptRef);
+            await set(newPromptRef, {
+              text: prompt,
+              createdAt: Date.now(),
+            });
+
+            promptInput.value = '';
+            closeModal('addPromptModal');
+          } catch (error) {
+            console.error('Error saving custom prompt:', error);
+          }
+        }
+      }
+
+      class ErrorHandler {
+    static async handleError(error, context) {
+        console.error(`Error in ${context}:`, error);
+        
+        // Store error for analytics
+        await set(ref(database, `errors/${Date.now()}`), {
+            error: error.message,
+            context,
+            userId: currentUser?.uid,
+            timestamp: serverTimestamp()
+        });
+
+        // Show user-friendly error message
+        const message = document.querySelector('.message');
+        if (message) {
+            message.innerHTML = `
+                <div class="error-message">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <span>Something went wrong. Please refresh the page.</span>
+                </div>
+            `;
+        }
+
+        // Attempt recovery
+        if (context === 'timer') {
+            storyFlowManager.restartTimer();
+        } else if (context === 'phase') {
+            storyFlowManager.resyncPhase();
+        }
+    }
+}
+
+      async function saveCustomMood() {
+        const moodInput = document.getElementById('newMoodInput');
+        if (!moodInput || !currentUser) return;
+
+        const mood = moodInput.value.trim();
+        if (mood) {
+          try {
+            const moodRef = ref(
+              database,
+              `users/${currentUser.uid}/customMoods`
+            );
+            const newMoodRef = push(moodRef);
+            await set(newMoodRef, {
+              name: mood,
+              createdAt: Date.now(),
+            });
+
+            moodInput.value = '';
+            closeModal('addMoodModal');
+          } catch (error) {
+            console.error('Error saving custom mood:', error);
+          }
+        }
+      }
+
+      // Story Management Functions
+      async function leaveCurrentStory() {
+        if (!currentStoryId || !currentUser) return;
+
+        try {
+          const participantRef = ref(
+            database,
+            `stories/${currentStoryId}/participants/${currentUser.uid}`
+          );
+          await remove(participantRef);
+        } catch (error) {
+          console.error('Error leaving story:', error);
+        }
+      }
+
+      // Global Window Functions
+      window.showAddPromptModal = () => {
+        const modal = document.getElementById('addPromptModal');
+        if (modal) modal.style.display = 'flex';
+      };
+
+      window.showAddMoodModal = () => {
+        const modal = document.getElementById('addMoodModal');
+        if (modal) modal.style.display = 'flex';
+      };
+
+      window.closeModal = (id) => {
+        const modal = document.getElementById(id);
+        if (modal) modal.style.display = 'none';
+      };
+
       window.saveCustomPrompt = saveCustomPrompt;
       window.saveCustomMood = saveCustomMood;
+
       window.deleteCustomPrompt = async (id) => {
-        await remove(
-          ref(database, `users/${currentUser.uid}/customPrompts/${id}`)
-        );
+        if (!currentUser) return;
+        try {
+          await remove(
+            ref(database, `users/${currentUser.uid}/customPrompts/${id}`)
+          );
+        } catch (error) {
+          console.error('Error deleting prompt:', error);
+        }
       };
+
+      window.startNewStory = async () => {
+        try {
+          if (currentStoryId) {
+            await leaveCurrentStory();
+          }
+
+          const storyFlowManager = new StoryFlowManager();
+          await storyFlowManager.initialize();
+
+          const postContribution = document.querySelector('.post-contribution');
+          if (postContribution) {
+            postContribution.classList.remove('show');
+          }
+        } catch (error) {
+          console.error('Error starting new story:', error);
+          alert('Error starting new story. Please try again.');
+        }
+      };
+
+      window.continueCollaborating = () => {
+        const postContribution = document.querySelector('.post-contribution');
+        if (postContribution) {
+          postContribution.classList.remove('show');
+        }
+        if (window.storyFlowManager) {
+          window.storyFlowManager.startNewRound();
+        }
+      };
+
+      window.addReaction = async (contributionId, reactionType) => {
+        if (!currentUser || !currentStoryId) return;
+
+        try {
+          const reactionRef = ref(
+            database,
+            `stories/${currentStoryId}/contributions/${contributionId}/reactions/${reactionType}`
+          );
+          const snapshot = await get(reactionRef);
+          const reactions = snapshot.val() || [];
+
+          const userIndex = reactions.indexOf(currentUser.uid);
+
+          if (userIndex > -1) {
+            reactions.splice(userIndex, 1);
+          } else {
+            reactions.push(currentUser.uid);
+            const button = document.querySelector(
+              `[onclick="addReaction('${contributionId}', '${reactionType}')"]`
+            );
+            if (button) {
+              button.classList.add('reaction-pop');
+              setTimeout(() => button.classList.remove('reaction-pop'), 300);
+            }
+          }
+
+          await set(reactionRef, reactions);
+        } catch (error) {
+          console.error('Error adding reaction:', error);
+        }
+      };
+
+      // Initialize App
+      async function initializeAppFeatures() {
+        console.log('Initializing app features...');
+        try {
+          if (!currentUser) {
+            throw new Error('User not authenticated');
+          }
+
+          // Test database access
+          const testRef = ref(database, `users/${currentUser.uid}/test`);
+          try {
+            await set(testRef, { timestamp: Date.now() });
+            await remove(testRef);
+            console.log('Database access verified');
+          } catch (error) {
+            console.error('Database access error:', error);
+            throw new Error('Database access denied');
+          }
+
+          // Initialize features one by one
+          console.log('Loading user content...');
+          await loadUserCustomContent();
+
+          console.log('Setting up mood buttons...');
+          setupMoodButtons();
+
+          console.log('Setting up custom prompts...');
+          await setupCustomPrompts();
+
+          // Initialize UI elements
+          updatePrompt(currentMood);
+
+          // Initialize story flow manager as a global instance
+          console.log('Initializing story flow manager...');
+          window.storyFlowManager = new StoryFlowManager();
+          await window.storyFlowManager.initialize();
+
+          console.log('App initialization complete');
+        } catch (error) {
+          console.error('Error initializing app:', error);
+          const message = document.querySelector('.message');
+          if (message) {
+            message.innerHTML = `
+                <div class="error-message">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <span>Error: ${error.message}</span>
+                </div>
+            `;
+          }
+        }
+      }
+
+      // Initialize Auth State Observer
+      onAuthStateChanged(auth, (user) => {
+        if (user) {
+          currentUser = user;
+          initializeAppFeatures();
+        } else {
+          window.location.href = 'index.html';
+        }
+      });
+
     </script>
   </body>
 </html>

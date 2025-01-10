@@ -12,6 +12,7 @@
             --primary: #4169e1;
             --secondary: #7c3aed;
             --background: #f5f5f5;
+            --white: #000;
             --text: #333333;
             --card-bg: #ffffff;
             --card-shadow: 0 2px 10px rgba(0,0,0,0.1);
@@ -27,6 +28,7 @@
             --secondary: #9d6dff;
             --background: #1a1a1a;
             --text: #e5e5e5;
+            --white: #fff;
             --card-bg: #2d2d2d;
             --card-shadow: 0 2px 10px rgba(0,0,0,0.3);
             --border: #404040;
@@ -75,6 +77,13 @@
             font-size: 1.5rem;
             font-weight: bold;
             color: var(--primary);
+            transition: color var(--transition-speed);
+        }
+
+        #logo-p {
+            font-size: 10px;
+            font-weight: 300;
+            color: var(--white);
             transition: color var(--transition-speed);
         }
 
@@ -357,6 +366,332 @@
             border-radius: 12px;
         }
 
+        .active-stories-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-top: 2rem;
+}
+
+.active-story-card {
+    background: var(--card-bg);
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: var(--card-shadow);
+    transition: transform 0.2s;
+}
+
+.active-story-card:hover {
+    transform: translateY(-5px);
+}
+
+.story-status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    font-size: 0.9rem;
+}
+
+.status-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #22c55e;
+}
+
+.story-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.view-story-btn {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 8px;
+    background: #f3f4f6;
+    color: var(--secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 1;
+}
+
+.view-story-btn:hover {
+    background: var(--border);
+    transform: translateY(-2px);
+}
+
+.join-story-btn {
+    flex: 1;
+}
+
+.story-view-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    z-index: 1000;
+}
+
+.story-view-content {
+    background: white;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 800px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.story-view-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.story-view-body {
+    padding: 1.5rem;
+    overflow-y: auto;
+}
+
+.modal-header h2 {
+    font-size: 1.5rem;
+    color: white;
+}
+
+.close-button {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.close-button:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.story-modal .modal-content {
+        width: 90%;
+        max-width: 800px;
+        max-height: 90vh;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .story-modal .modal-body {
+        padding: 1.5rem;
+        overflow-y: auto;
+    }
+
+    .story-contributions {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .contribution {
+    background: #f8fafc;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+    .story-view-modal {
+    padding: 2rem;
+}
+    
+
+.story-view-content {
+    background: white;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+    overflow: hidden;
+}
+    
+
+.story-view-header {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+    padding: 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.story-view-body {
+    padding: 2rem;
+}
+
+.story-entry {
+    background: white;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.author-section {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.author-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+.author-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.author-name {
+    font-weight: 500;
+    color: var(--text);
+}
+
+.timestamp {
+    font-size: 0.85rem;
+    color: var(--secondary);
+}
+
+.story-prompt {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin-bottom: 2rem;
+    font-size: 1.2rem;
+    text-align: center;
+}
+
+.close-button {
+    background: none;
+    border: none;
+    color: var(--text);
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 50%;
+    transition: background 0.2s;
+}
+
+.close-button:hover {
+    background: var(--border);
+}
+
+    .contribution-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+    }
+
+    .author-info {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .timestamp {
+        color: var(--secondary);
+        font-size: 0.9rem;
+    }
+
+    .contribution-content {
+    font-size: 1.1rem;
+    line-height: 1.6;
+    color: var(--text);
+    margin-top: 1rem;
+}
+
+    .content {
+    color: var(--text);
+    line-height: 1.6;
+    font-size: 1.1rem;
+    margin: 1rem 0;
+}
+
+    .error-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+        padding: 2rem;
+        text-align: center;
+    }
+
+    .error-state i {
+        font-size: 2rem;
+        color: #ef4444;
+    }
+
+    .retry-button {
+        padding: 0.5rem 1rem;
+        border: none;
+        border-radius: 6px;
+        background: var(--primary);
+        color: white;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+.join-story-btn {
+    width: 100%;
+    margin-top: 1rem;
+    padding: 0.75rem;
+    border: none;
+    border-radius: 8px;
+    background: var(--primary);
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.join-story-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.join-story-btn:disabled {
+    background: var(--border);
+    cursor: not-allowed;
+}
+
         /* Animations */
         @keyframes fadeInUp {
             from {
@@ -406,7 +741,7 @@
 <body>
     <nav class="nav-bar">
         <div class="nav-content">
-            <div class="logo">Scribblate</div>
+            <div class="logo">Scribblate <br> <p id="logo-p">Created By Julian Walker</p></div>
             <div class="nav-buttons">
                 <button class="theme-toggle" aria-label="Toggle dark mode">
                     <!-- Icon will be inserted by JavaScript -->
@@ -446,9 +781,19 @@
         </div>
     </div>
 
+    <!-- Add this after the categories section in the main page -->
+    <h2 class="section-title">
+        <i class="fas fa-pen-fancy"></i>
+        Active Stories
+    </h2>
+    <div class="active-stories-grid">
+        <!-- Active stories will be loaded here -->
+    </div>
+
     <script type="module">
        
        // Import Firebase modules
+// Import Firebase modules
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
 import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
 import { 
@@ -460,7 +805,11 @@ import {
     remove, 
     onDisconnect,
     push,
-    serverTimestamp 
+    serverTimestamp,
+    query,
+    orderByChild,
+    startAfter,
+    endAt 
 } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js';
 
 // Firebase configuration
@@ -519,8 +868,8 @@ class ThemeManager {
 class StoryManager {
     constructor() {
         this.storiesGrid = document.querySelector('.stories-grid');
+        this.activeStoriesGrid = document.querySelector('.active-stories-grid');
         this.loadingStories = false;
-        this.stories = [];
     }
 
     createSkeletonLoader() {
@@ -566,11 +915,122 @@ class StoryManager {
             });
         } catch (error) {
             console.error('Error loading stories:', error);
-            this.storiesGrid.innerHTML = '<p>Error loading stories. Please try again later.</p>';
+            this.storiesGrid.innerHTML = '<p class="error-message">Error loading stories. Please try again.</p>';
         } finally {
             this.loadingStories = false;
         }
     }
+
+    async loadActiveStories() {
+    try {
+        const storiesRef = ref(database, 'stories');
+        const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000);
+        
+        const storiesSnapshot = await get(storiesRef);
+        
+        if (!storiesSnapshot.exists()) {
+            this.activeStoriesGrid.innerHTML = '<p class="no-stories">No active stories at the moment. Start writing!</p>';
+            return;
+        }
+
+        const activeStories = [];
+        const usedPrompts = new Set(); // Track used prompts to avoid duplicates
+
+        storiesSnapshot.forEach((childSnapshot) => {
+            const story = childSnapshot.val();
+            const hasContributions = story.contributions && Object.keys(story.contributions).length > 0;
+            const prompt = story.prompt || '';
+
+            // Only include stories that:
+            // 1. Are active
+            // 2. Were created within last 24 hours
+            // 3. Either have contributions or are unique prompts
+            if (story.status === 'active' && 
+                story.createdAt > oneDayAgo &&
+                (hasContributions || !usedPrompts.has(prompt))) {
+                
+                usedPrompts.add(prompt);
+                activeStories.push({
+                    id: childSnapshot.key,
+                    ...story,
+                    hasContributions
+                });
+            }
+        });
+
+        this.activeStoriesGrid.innerHTML = activeStories.map(story => this.createActiveStoryCard(story)).join('');
+    } catch (error) {
+        console.error('Error loading active stories:', error);
+        this.activeStoriesGrid.innerHTML = '<p class="error-message">Error loading active stories. Please try again.</p>';
+    }
+}
+
+// In the StoryManager class
+createActiveStoryCard(story) {
+    const participantCount = Object.keys(story.participants || {}).length;
+    const title = this.generateTitleFromPrompt(story.prompt) || 'Untitled Story';
+    
+    return `
+        <div class="active-story-card">
+            <div class="story-header">
+                <h3 class="story-title">${title}</h3>
+                <span class="story-category">${story.category || story.currentMood || 'Creative'}</span>
+            </div>
+            <p class="story-content">
+                ${this.getStoryPreview(story.contributions) || story.prompt || 'A new story is beginning...'}
+            </p>
+            <div class="story-status">
+                <span class="status-indicator"></span>
+                <span>${participantCount}/5 writers</span>
+                <span>•</span>
+                <span>${this.getTimeAgo(story.createdAt)}</span>
+            </div>
+            <div class="story-actions">
+                <button 
+                    class="view-story-btn"
+                    onclick="viewStory('${story.id}')"
+                >
+                    <i class="fas fa-eye"></i> View Story
+                </button>
+                <button 
+                    class="join-story-btn"
+                    onclick="window.joinStory('${story.id}')"
+                    ${participantCount >= 5 ? 'disabled' : ''}
+                >
+                    ${participantCount >= 5 ? 'Story Full' : 'Join Story'}
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+generateTitleFromPrompt(prompt) {
+    if (!prompt) return null;
+    
+    // Remove common starter phrases
+    const cleanPrompt = prompt
+        .replace(/^In a world where/i, '')
+        .replace(/^When/i, '')
+        .replace(/^The/i, '')
+        .replace(/^Through/i, '')
+        .replace(/^Their/i, '');
+
+    // Get first meaningful segment
+    const segments = cleanPrompt.split(/[,.;]/);
+    let title = segments[0].trim();
+
+    // Capitalize first letter of each word
+    title = title.split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(' ');
+
+    // Limit length
+    if (title.length > 50) {
+        title = title.substring(0, 47) + '...';
+    }
+
+    return title || 'Untitled Story';
+}
 
     createStoryCard(story) {
         const card = document.createElement('div');
@@ -591,12 +1051,17 @@ class StoryManager {
     }
 
     getStoryPreview(contributions = {}) {
-        const preview = Object.values(contributions)
-            .sort((a, b) => a.timestamp - b.timestamp)
-            .map(c => c.content)
-            .join(' ');
-        return preview.slice(0, 150) + (preview.length > 150 ? '...' : '');
-    }
+    if (!contributions || Object.keys(contributions).length === 0) return '';
+    
+    // Sort contributions by timestamp and get the first one
+    const sortedContributions = Object.values(contributions)
+        .sort((a, b) => a.timestamp - b.timestamp);
+    
+    const firstContribution = sortedContributions[0]?.content || '';
+    return firstContribution.length > 150 ? 
+        firstContribution.slice(0, 147) + '...' : 
+        firstContribution;
+}
 
     getTimeAgo(timestamp) {
         if (!timestamp) return 'just now';
@@ -621,6 +1086,100 @@ class StoryManager {
         return 'just now';
     }
 }
+
+// Add to window object
+window.viewStory = async (storyId) => {
+    if (!currentUser) {
+        window.location.href = 'index.html';
+        return;
+    }
+
+    // Create the modal
+    const modal = document.createElement('div');
+    modal.className = 'story-view-modal';
+    modal.innerHTML = `
+        <div class="story-view-content">
+            <div class="story-view-header">
+                <h2 id="storyTitle">Loading story...</h2>
+                <button class="close-button" onclick="this.closest('.story-view-modal').remove()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="story-view-body">
+                <div class="story-prompt"></div>
+                <div class="contributions"></div>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    try {
+        const storyRef = ref(database, `stories/${storyId}`);
+        const snapshot = await get(storyRef);
+        const story = snapshot.val();
+
+        if (!story) {
+            throw new Error('Story not found');
+        }
+
+        // Update header
+        const header = modal.querySelector('.story-view-header h2');
+        header.textContent = story.prompt || 'Untitled Story';
+
+        // Set up real-time listener for contributions
+        const contributionsRef = ref(database, `stories/${storyId}/contributions`);
+        onValue(contributionsRef, (snapshot) => {
+            const contributions = snapshot.val() || {};
+            const storyContent = modal.querySelector('.story-content');
+
+            const sortedContributions = Object.entries(contributions)
+                .sort(([, a], [, b]) => a.timestamp - b.timestamp);
+
+            storyContent.innerHTML = `
+                <div class="story-prompt">${story.prompt || ''}</div>
+                ${sortedContributions.map(([id, contribution]) => `
+                    <div class="contribution">
+                        <div class="contribution-meta">
+                            <div class="author-info">
+                                <img src="${contribution.userPhoto || ''}" 
+                                     alt="${contribution.userName}"
+                                     class="author-avatar">
+                                <span>${contribution.userName}</span>
+                            </div>
+                            <span class="timestamp">${formatTimeAgo(contribution.timestamp)}</span>
+                        </div>
+                        <div class="contribution-content">
+                            ${contribution.content}
+                        </div>
+                    </div>
+                `).join('')}
+            `;
+        });
+
+    } catch (error) {
+        console.error('Error viewing story:', error);
+        const content = modal.querySelector('.story-content');
+        content.innerHTML = `
+            <div class="error-message">
+                <i class="fas fa-exclamation-circle"></i>
+                <p>Failed to load story. Please try again.</p>
+                <button onclick="viewStory('${storyId}')">Retry</button>
+            </div>
+        `;
+    }
+};
+
+function formatTimeAgo(timestamp) {
+    const seconds = Math.floor((Date.now() - timestamp) / 1000);
+    
+    if (seconds < 60) return 'just now';
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+    
+    return new Date(timestamp).toLocaleDateString();
+}
+
 
 // Landing Page Handler
 class LandingPageHandler {
@@ -652,7 +1211,6 @@ class LandingPageHandler {
     }
 
     async createOrJoinStorySession(userId) {
-        // Try to find an active story with space
         const activeStoriesRef = ref(database, 'activeStories');
         const snapshot = await get(activeStoriesRef);
         
@@ -660,14 +1218,11 @@ class LandingPageHandler {
             const activeStories = snapshot.val();
             for (const [storyId, story] of Object.entries(activeStories)) {
                 if (story.participantCount < 5) {
-                    // Join existing story
-                    const participantRef = ref(database, `stories/${storyId}/participants/${userId}`);
-                    await set(participantRef, {
+                    await set(ref(database, `stories/${storyId}/participants/${userId}`), {
                         joinedAt: serverTimestamp(),
                         lastActive: serverTimestamp()
                     });
 
-                    // Update participant count
                     await set(ref(database, `activeStories/${storyId}/participantCount`), story.participantCount + 1);
 
                     return { id: storyId, ...story };
@@ -675,54 +1230,97 @@ class LandingPageHandler {
             }
         }
 
-        // Create new story if no suitable active story found
         return await this.createNewStorySession(userId);
     }
 
     async createNewStorySession(userId) {
-        const storiesRef = ref(database, 'stories');
-        const newStoryRef = push(storiesRef);
+    const storiesRef = ref(database, 'stories');
+    const newStoryRef = push(storiesRef);
 
-        const storyData = {
-            createdAt: serverTimestamp(),
-            status: 'active',
-            currentPhase: 'brainstorm',
-            participants: {
-                [userId]: {
-                    joinedAt: serverTimestamp(),
-                    lastActive: serverTimestamp()
-                }
-            },
-            contributions: {},
-            settings: {
-                maxParticipants: 5,
-                timePerContribution: 45,
-                mood: 'creative'
+    // Get a random prompt
+    const moods = ['creative', 'mysterious', 'adventure', 'romantic', 'sci-fi'];
+    const randomMood = moods[Math.floor(Math.random() * moods.length)];
+    const prompts = defaultPrompts[randomMood];
+    const randomPrompt = prompts[Math.floor(Math.random() * prompts.length)];
+
+    const storyData = {
+        createdAt: serverTimestamp(),
+        status: 'active',
+        currentPhase: 'brainstorm',
+        prompt: randomPrompt, // Add the prompt here
+        participants: {
+            [userId]: {
+                joinedAt: serverTimestamp(),
+                lastActive: serverTimestamp()
             }
-        };
+        },
+        contributions: {},
+        settings: {
+            maxParticipants: 5,
+            timePerContribution: 45,
+            mood: randomMood
+        }
+    };
 
-        await set(newStoryRef, storyData);
+    await set(newStoryRef, storyData);
+    await set(ref(database, `activeStories/${newStoryRef.key}`), {
+        createdAt: serverTimestamp(),
+        participantCount: 1
+    });
 
-        // Add to active stories
-        const activeStoryRef = ref(database, `activeStories/${newStoryRef.key}`);
-        await set(activeStoryRef, {
-            createdAt: serverTimestamp(),
-            participantCount: 1
+    return { id: newStoryRef.key, ...storyData };
+}
+}
+
+// Initialize global join story function
+window.joinStory = async (storyId) => {
+    if (!currentUser) {
+        window.location.href = 'app.html';
+        return;
+    }
+
+    try {
+        const storyRef = ref(database, `stories/${storyId}`);
+        const story = (await get(storyRef)).val();
+
+        if (!story || story.status !== 'active') {
+            alert('This story is no longer available.');
+            return;
+        }
+
+        if (Object.keys(story.participants || {}).length >= 5) {
+            alert('This story is full.');
+            return;
+        }
+
+        // Add user to participants
+        await set(ref(database, `stories/${storyId}/participants/${currentUser.uid}`), {
+            joinedAt: serverTimestamp(),
+            displayName: currentUser.displayName,
+            photoURL: currentUser.photoURL
         });
 
-        return { id: newStoryRef.key, ...storyData };
+        // Store story ID and set join flag
+        localStorage.setItem('storyId', storyId);
+        localStorage.setItem('isNewStory', 'false');
+
+        // Redirect to writing page
+        window.location.href = 'write.html';
+    } catch (error) {
+        console.error('Error joining story:', error);
+        alert('Unable to join story. Please try again.');
     }
-}
+};
 
 // Initialize everything when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    // Initialize managers
     const themeManager = new ThemeManager();
     const storyManager = new StoryManager();
     const landingPageHandler = new LandingPageHandler();
 
     // Load initial stories
     storyManager.loadStories();
+    storyManager.loadActiveStories();
 
     // Set up category filters
     const categoryTags = document.querySelectorAll('.category-tag');
@@ -735,21 +1333,41 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // Auto-refresh active stories
+    setInterval(() => storyManager.loadActiveStories(), 30000);
+
     // Initialize auth state listener
-    onAuthStateChanged(auth, (user) => {
-        currentUser = user;
-        const signInButton = document.querySelector('.button-secondary');
-        
-        if (user) {
-            console.log('User signed in:', user.uid);
-            signInButton.textContent = 'Sign Out';
-            signInButton.addEventListener('click', () => auth.signOut());
-        } else {
-            console.log('User signed out');
-            signInButton.textContent = 'Sign In';
-            signInButton.addEventListener('click', () => window.location.href = 'index.html');
-        }
-    });
+    // Initialize auth state listener
+onAuthStateChanged(auth, (user) => {
+    currentUser = user;
+    const signInButton = document.querySelector('.button-secondary');
+    
+    if (user) {
+        console.log('User signed in:', user.uid);
+        signInButton.textContent = 'Sign Out';
+        signInButton.addEventListener('click', () => auth.signOut());
+
+        // Reload stories after sign in
+        storyManager.loadStories();
+        storyManager.loadActiveStories();
+    } else {
+        console.log('User signed out');
+        signInButton.textContent = 'Sign In';
+        signInButton.addEventListener('click', () => window.location.href = 'index.html');
+    }
+});
+
+// Error Handler
+window.addEventListener('error', (event) => {
+    console.error('Global error:', event.error);
+    // Optionally log to Firebase or show user-friendly error
+});
+
+// Handle unhandled promise rejections
+window.addEventListener('unhandledrejection', (event) => {
+    console.error('Unhandled promise rejection:', event.reason);
+    // Optionally log to Firebase or show user-friendly error
+});
 });
         
     </script>
