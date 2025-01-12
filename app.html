@@ -213,35 +213,34 @@
         }
 
         .story-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: start;
-            margin-bottom: 1rem;
-        }
+    margin-bottom: 1rem;
+}
 
-        .story-title {
-            font-size: 1.2rem;
-            color: var(--text);
-            margin-right: 1rem;
-            transition: color var(--transition-speed);
-        }
+.story-title {
+    font-size: 1.2rem;
+    color: var(--text);
+    margin-bottom: 0.5rem;
+}
 
-        .story-category {
-            padding: 0.25rem 0.75rem;
-            border-radius: 15px;
-            font-size: 0.8rem;
-            background: rgba(65, 105, 225, 0.1);
-            color: var(--primary);
-            white-space: nowrap;
-            transition: all var(--transition-speed);
-        }
+.story-category {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    background: rgba(65, 105, 225, 0.1);
+    color: var(--primary);
+}
 
-        .story-content {
-            color: var(--secondary);
-            margin-bottom: 1rem;
-            line-height: 1.6;
-            transition: color var(--transition-speed);
-        }
+.story-content {
+    color: var(--secondary);
+    line-height: 1.6;
+    margin-bottom: 1rem;
+    flex-grow: 1;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
 
         .story-stats {
             display: flex;
@@ -250,6 +249,22 @@
             font-size: 0.9rem;
             transition: color var(--transition-speed);
         }
+
+        .story-status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+}
+
+.status-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #22c55e;
+    flex-shrink: 0;
+}
 
         /* Section title styles */
         .section-title {
@@ -379,6 +394,9 @@
     padding: 1.5rem;
     box-shadow: var(--card-shadow);
     transition: transform 0.2s;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
 }
 
 .active-story-card:hover {
@@ -401,32 +419,52 @@
 }
 
 .story-actions {
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 1rem;
-    margin-top: 1rem;
+    margin-top: auto;
 }
 
-.view-story-btn {
-    padding: 0.75rem 1.5rem;
+.view-story-btn, 
+.join-story-btn {
+    padding: 0.75rem 1rem;
     border: none;
     border-radius: 8px;
-    background: #f3f4f6;
-    color: var(--secondary);
     cursor: pointer;
     transition: all 0.2s;
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 0.5rem;
-    flex: 1;
+    font-size: 0.9rem;
+    height: 40px;
+}
+
+.view-story-btn {
+    background: var(--card-bg);
+    color: var(--secondary);
+    border: 1px solid var(--border);
 }
 
 .view-story-btn:hover {
     background: var(--border);
-    transform: translateY(-2px);
 }
 
 .join-story-btn {
-    flex: 1;
+    background: var(--primary);
+    color: white;
+}
+
+.join-story-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.join-story-btn:disabled {
+    background: var(--border);
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
 }
 
 .story-view-modal {
@@ -687,6 +725,25 @@
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 
+.story-view-modal {
+    background: rgba(0, 0, 0, 0.75); /* Darker overlay */
+}
+
+.story-entry {
+    background: var(--card-bg);
+    margin-bottom: 1.5rem;
+    transition: transform 0.2s;
+}
+
+.story-entry:hover {
+    transform: translateY(-2px);
+}
+
+.story-prompt {
+    margin-bottom: 2rem;
+    font-weight: 500;
+}
+
 .join-story-btn:disabled {
     background: var(--border);
     cursor: not-allowed;
@@ -761,7 +818,7 @@
                 Start Writing
             </button>
         </section>
-
+    
         <div class="categories">
             <div class="category-tag active">All Stories</div>
             <div class="category-tag">Creative</div>
@@ -770,7 +827,7 @@
             <div class="category-tag">Romantic</div>
             <div class="category-tag">Sci-Fi</div>
         </div>
-
+    
         <h2 class="section-title">
             <i class="fas fa-star"></i>
             Featured Stories
@@ -779,15 +836,15 @@
         <div class="stories-grid">
             <!-- Story cards will be inserted here by JavaScript -->
         </div>
-    </div>
-
-    <!-- Add this after the categories section in the main page -->
-    <h2 class="section-title">
-        <i class="fas fa-pen-fancy"></i>
-        Active Stories
-    </h2>
-    <div class="active-stories-grid">
-        <!-- Active stories will be loaded here -->
+    
+        <h2 class="section-title">
+            <i class="fas fa-pen-fancy"></i>
+            Active Stories
+        </h2>
+        
+        <div class="active-stories-grid">
+            <!-- Active stories will be loaded here -->
+        </div>
     </div>
 
     <script type="module">
@@ -922,87 +979,112 @@ class StoryManager {
     }
 
     async loadActiveStories() {
-    try {
-        const storiesRef = ref(database, 'stories');
-        const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000);
-        
-        const storiesSnapshot = await get(storiesRef);
-        
-        if (!storiesSnapshot.exists()) {
-            this.activeStoriesGrid.innerHTML = '<p class="no-stories">No active stories at the moment. Start writing!</p>';
-            return;
-        }
-
-        const activeStories = [];
-        const usedPrompts = new Set(); // Track used prompts to avoid duplicates
-
-        storiesSnapshot.forEach((childSnapshot) => {
-            const story = childSnapshot.val();
-            const hasContributions = story.contributions && Object.keys(story.contributions).length > 0;
-            const prompt = story.prompt || '';
-
-            // Only include stories that:
-            // 1. Are active
-            // 2. Were created within last 24 hours
-            // 3. Either have contributions or are unique prompts
-            if (story.status === 'active' && 
-                story.createdAt > oneDayAgo &&
-                (hasContributions || !usedPrompts.has(prompt))) {
-                
-                usedPrompts.add(prompt);
-                activeStories.push({
-                    id: childSnapshot.key,
-                    ...story,
-                    hasContributions
-                });
+        try {
+            const storiesRef = ref(database, 'stories');
+            const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000);
+            
+            const storiesSnapshot = await get(storiesRef);
+            
+            if (!storiesSnapshot.exists()) {
+                this.activeStoriesGrid.innerHTML = '<p class="no-stories">No active stories at the moment. Start writing!</p>';
+                return;
             }
-        });
 
-        this.activeStoriesGrid.innerHTML = activeStories.map(story => this.createActiveStoryCard(story)).join('');
-    } catch (error) {
-        console.error('Error loading active stories:', error);
-        this.activeStoriesGrid.innerHTML = '<p class="error-message">Error loading active stories. Please try again.</p>';
+            const activeStories = [];
+            const usedPrompts = new Set();
+
+            // Cleanup old or empty stories first
+            const cleanup = [];
+            
+            storiesSnapshot.forEach((childSnapshot) => {
+                const story = childSnapshot.val();
+                const storyId = childSnapshot.key;
+                
+                // Mark for cleanup if:
+                // 1. Story is older than 24 hours and has no participants
+                // 2. Story has no participants and no contributions
+                // 3. Story was created but never got any content
+                if ((story.createdAt < oneDayAgo && (!story.participants || Object.keys(story.participants).length === 0)) ||
+                    (!story.participants && !story.contributions) ||
+                    (story.createdAt < Date.now() - (30 * 60 * 1000) && !story.contributions)) {
+                    cleanup.push(remove(ref(database, `stories/${storyId}`)));
+                    return;
+                }
+
+                // Only include valid active stories
+                if (this.isValidActiveStory(story)) {
+                    const prompt = story.prompt || '';
+                    if (!usedPrompts.has(prompt)) {
+                        usedPrompts.add(prompt);
+                        activeStories.push({
+                            id: storyId,
+                            ...story
+                        });
+                    }
+                }
+            });
+
+            // Perform cleanup if needed
+            if (cleanup.length > 0) {
+                await Promise.all(cleanup);
+            }
+
+            this.activeStoriesGrid.innerHTML = activeStories.map(story => this.createActiveStoryCard(story)).join('');
+        } catch (error) {
+            console.error('Error loading active stories:', error);
+            this.activeStoriesGrid.innerHTML = '<p class="error-message">Error loading active stories. Please try again.</p>';
+        }
     }
-}
+
+    isValidActiveStory(story) {
+        const hasParticipants = story.participants && Object.keys(story.participants).length > 0;
+        const hasContributions = story.contributions && Object.keys(story.contributions).length > 0;
+        const isRecent = story.createdAt > Date.now() - (24 * 60 * 60 * 1000);
+        
+        // Story is valid if:
+        // 1. It's recent and has participants, or
+        // 2. It has actual contributions
+        return (isRecent && hasParticipants) || hasContributions;
+    }
 
 // In the StoryManager class
 createActiveStoryCard(story) {
-    const participantCount = Object.keys(story.participants || {}).length;
-    const title = this.generateTitleFromPrompt(story.prompt) || 'Untitled Story';
-    
-    return `
-        <div class="active-story-card">
-            <div class="story-header">
-                <h3 class="story-title">${title}</h3>
-                <span class="story-category">${story.category || story.currentMood || 'Creative'}</span>
+        const participantCount = Object.keys(story.participants || {}).length;
+        const hasContributions = story.contributions && Object.keys(story.contributions).length > 0;
+        const title = this.generateTitleFromPrompt(story.prompt) || 'Untitled Story';
+        
+        return `
+            <div class="active-story-card">
+                <div class="story-header">
+                    <h3 class="story-title">${title}</h3>
+                    <span class="story-category">${story.category || story.currentMood || 'Creative'}</span>
+                </div>
+                <p class="story-content">
+                    ${hasContributions ? this.getStoryPreview(story.contributions) : story.prompt || 'A new story is beginning...'}
+                </p>
+                <div class="story-status">
+                    <span class="status-indicator"></span>
+                    <span>${participantCount}/5 writers</span>
+                    <span>•</span>
+                    <span>${this.getTimeAgo(story.createdAt)}</span>
+                </div>
+                <div class="story-actions">
+                    ${hasContributions ? `
+                        <button class="view-story-btn" onclick="viewStory('${story.id}')">
+                            <i class="fas fa-eye"></i> View Story
+                        </button>
+                    ` : ''}
+                    <button 
+                        class="join-story-btn"
+                        onclick="window.joinStory('${story.id}')"
+                        ${participantCount >= 5 ? 'disabled' : ''}
+                    >
+                        ${participantCount >= 5 ? 'Story Full' : 'Join Story'}
+                    </button>
+                </div>
             </div>
-            <p class="story-content">
-                ${this.getStoryPreview(story.contributions) || story.prompt || 'A new story is beginning...'}
-            </p>
-            <div class="story-status">
-                <span class="status-indicator"></span>
-                <span>${participantCount}/5 writers</span>
-                <span>•</span>
-                <span>${this.getTimeAgo(story.createdAt)}</span>
-            </div>
-            <div class="story-actions">
-                <button 
-                    class="view-story-btn"
-                    onclick="viewStory('${story.id}')"
-                >
-                    <i class="fas fa-eye"></i> View Story
-                </button>
-                <button 
-                    class="join-story-btn"
-                    onclick="window.joinStory('${story.id}')"
-                    ${participantCount >= 5 ? 'disabled' : ''}
-                >
-                    ${participantCount >= 5 ? 'Story Full' : 'Join Story'}
-                </button>
-            </div>
-        </div>
-    `;
-}
+        `;
+    }
 
 generateTitleFromPrompt(prompt) {
     if (!prompt) return null;
@@ -1094,20 +1176,23 @@ window.viewStory = async (storyId) => {
         return;
     }
 
-    // Create the modal
     const modal = document.createElement('div');
     modal.className = 'story-view-modal';
     modal.innerHTML = `
         <div class="story-view-content">
             <div class="story-view-header">
-                <h2 id="storyTitle">Loading story...</h2>
+                <h2>Loading story...</h2>
                 <button class="close-button" onclick="this.closest('.story-view-modal').remove()">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
             <div class="story-view-body">
-                <div class="story-prompt"></div>
-                <div class="contributions"></div>
+                <div id="story-content">
+                    <div class="loading-spinner">
+                        <i class="fas fa-circle-notch fa-spin"></i>
+                        Loading...
+                    </div>
+                </div>
             </div>
         </div>
     `;
@@ -1127,55 +1212,84 @@ window.viewStory = async (storyId) => {
         const header = modal.querySelector('.story-view-header h2');
         header.textContent = story.prompt || 'Untitled Story';
 
+        // Update content
+        const contentDiv = modal.querySelector('#story-content');
+        
+        // Add prompt
+        contentDiv.innerHTML = `
+            <div class="story-prompt">${story.prompt || ''}</div>
+            <div class="story-entries"></div>
+        `;
+
         // Set up real-time listener for contributions
         const contributionsRef = ref(database, `stories/${storyId}/contributions`);
         onValue(contributionsRef, (snapshot) => {
             const contributions = snapshot.val() || {};
-            const storyContent = modal.querySelector('.story-content');
+            const entriesDiv = modal.querySelector('.story-entries');
 
             const sortedContributions = Object.entries(contributions)
                 .sort(([, a], [, b]) => a.timestamp - b.timestamp);
 
-            storyContent.innerHTML = `
-                <div class="story-prompt">${story.prompt || ''}</div>
-                ${sortedContributions.map(([id, contribution]) => `
-                    <div class="contribution">
-                        <div class="contribution-meta">
-                            <div class="author-info">
-                                <img src="${contribution.userPhoto || ''}" 
-                                     alt="${contribution.userName}"
-                                     class="author-avatar">
-                                <span>${contribution.userName}</span>
+            entriesDiv.innerHTML = sortedContributions.length > 0 ? 
+                sortedContributions.map(([id, contribution]) => `
+                    <div class="story-entry">
+                        <div class="author-section">
+                            <div class="author-avatar">
+                                ${contribution.userPhoto ? 
+                                    `<img src="${contribution.userPhoto}" alt="">` : 
+                                    contribution.userName.charAt(0)}
                             </div>
-                            <span class="timestamp">${formatTimeAgo(contribution.timestamp)}</span>
+                            <div class="author-info">
+                                <span class="author-name">${contribution.userName}</span>
+                                <span class="timestamp">${formatTimeAgo(contribution.timestamp)}</span>
+                            </div>
                         </div>
-                        <div class="contribution-content">
-                            ${contribution.content}
-                        </div>
+                        <div class="content">${contribution.content}</div>
                     </div>
-                `).join('')}
-            `;
+                `).join('') : 
+                '<div class="no-contributions">No contributions yet</div>';
         });
 
     } catch (error) {
-        console.error('Error viewing story:', error);
-        const content = modal.querySelector('.story-content');
-        content.innerHTML = `
-            <div class="error-message">
+        console.error('Error loading story:', error);
+        modal.querySelector('#story-content').innerHTML = `
+            <div class="error-state">
                 <i class="fas fa-exclamation-circle"></i>
-                <p>Failed to load story. Please try again.</p>
+                <p>Failed to load story</p>
                 <button onclick="viewStory('${storyId}')">Retry</button>
             </div>
         `;
     }
 };
 
+window.react = async (contributionId, reactionType) => {
+    if (!currentUser) return;
+
+    try {
+        const reactionRef = ref(database, `stories/${currentStoryId}/contributions/${contributionId}/reactions/${reactionType}`);
+        const snapshot = await get(reactionRef);
+        const reactions = snapshot.val() || [];
+        
+        const userIndex = reactions.indexOf(currentUser.uid);
+        if (userIndex > -1) {
+            reactions.splice(userIndex, 1);
+        } else {
+            reactions.push(currentUser.uid);
+        }
+        
+        await set(reactionRef, reactions);
+    } catch (error) {
+        console.error('Error adding reaction:', error);
+    }
+};
+
 function formatTimeAgo(timestamp) {
-    const seconds = Math.floor((Date.now() - timestamp) / 1000);
+    const seconds = Math.floor((Date.now() - (timestamp?.toMillis?.() || timestamp)) / 1000);
     
     if (seconds < 60) return 'just now';
     if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
     if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+    if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
     
     return new Date(timestamp).toLocaleDateString();
 }
