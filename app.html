@@ -192,25 +192,26 @@
         }
 
         .story-card {
-            background: var(--card-bg);
-            border-radius: 12px;
-            padding: 1.5rem;
-            box-shadow: var(--card-shadow);
-            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
-                      box-shadow 0.3s ease,
-                      background-color var(--transition-speed);
-            opacity: 0;
-            transform: translateY(20px);
-        }
+    background: var(--card-bg);
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: var(--card-shadow);
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+                box-shadow 0.3s ease,
+                background-color var(--transition-speed);
+    cursor: pointer;
+    opacity: 0;
+    transform: translateY(20px);
+}
 
         .story-card.animate-in {
             animation: fadeInUp 0.6s ease forwards;
         }
 
         .story-card:hover {
-            transform: scale(1.02) translateY(-5px);
-            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
-        }
+    transform: scale(1.02) translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+}
 
         .story-header {
     margin-bottom: 1rem;
@@ -229,6 +230,11 @@
     font-size: 0.8rem;
     background: rgba(65, 105, 225, 0.1);
     color: var(--primary);
+}
+
+.story-content-wrapper {
+    padding: 2rem;
+    position: relative;
 }
 
 .story-content {
@@ -473,35 +479,51 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.75);
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 2rem;
     z-index: 1000;
+    overflow-y: auto; /* Allow modal itself to scroll */
 }
 
 .story-view-content {
-    background: white;
+    background: var(--card-bg);
     border-radius: 12px;
     width: 100%;
     max-width: 800px;
-    max-height: 90vh;
-    display: flex;
-    flex-direction: column;
+    margin: 2rem;
+    overflow: hidden;
 }
 
 .story-view-header {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
     padding: 1.5rem;
-    border-bottom: 1px solid var(--border);
+    color: white;
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
 
+.view-controls {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.view-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: white;
+    cursor: pointer;
+}
+
 .story-view-body {
-    padding: 1.5rem;
-    overflow-y: auto;
+    padding: 2rem;
+    overflow-y: auto; /* Allow content to scroll */
+    max-height: calc(90vh - 80px); /* Account for header height */
 }
 
 .modal-header h2 {
@@ -541,16 +563,17 @@
     }
 
     .story-contributions {
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-    }
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
 
     .contribution {
-    background: #f8fafc;
+    background: var(--card-bg);
     border-radius: 8px;
     padding: 1.5rem;
     margin-bottom: 1rem;
+    box-shadow: var(--card-shadow);
 }
 
     .story-view-modal {
@@ -596,6 +619,11 @@
     margin-bottom: 1rem;
 }
 
+.author {
+    font-weight: 500;
+    color: var(--primary);
+}
+
 .author-avatar {
     width: 40px;
     height: 40px;
@@ -615,13 +643,50 @@
     gap: 0.25rem;
 }
 
+.full-story, .contributions-view {
+    display: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+
+.full-story.active, .contributions-view.active {
+    display: block;
+    opacity: 1;
+}
+
+.full-story {
+    line-height: 1.8;
+    font-size: 1.1rem;
+    color: var(--text);
+}
+
+.contribution-highlight {
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    border-radius: 8px;
+}
+
+.contribution-meta {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.highlighted-text {
+    padding: 1rem;
+    border-radius: 4px;
+    line-height: 1.8;
+    font-size: 1.1rem;
+}
+
 .author-name {
     font-weight: 500;
     color: var(--text);
 }
 
 .timestamp {
-    font-size: 0.85rem;
     color: var(--secondary);
 }
 
@@ -934,35 +999,44 @@ class StoryManager {
     }
 
     async loadStories(category = 'all') {
-        if (this.loadingStories) return;
-        this.loadingStories = true;
+    if (this.loadingStories) return;
+    this.loadingStories = true;
 
-        try {
-            // Show skeleton loaders
-            this.storiesGrid.innerHTML = this.createSkeletonLoader();
+    try {
+        this.storiesGrid.innerHTML = this.createSkeletonLoader();
 
-            // Fetch stories
-            const storiesRef = ref(database, 'stories');
-            const snapshot = await get(storiesRef);
-            const stories = [];
+        const storiesRef = ref(database, 'stories');
+        const snapshot = await get(storiesRef);
+        const stories = [];
+        const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000);
+        const seenPrompts = new Set(); // To prevent duplicate prompts
 
-            if (snapshot.exists()) {
-                snapshot.forEach((childSnapshot) => {
-                    const story = childSnapshot.val();
-                    if (story.status === 'completed' && (category === 'all' || story.category === category)) {
-                        stories.push({
-                            id: childSnapshot.key,
-                            ...story
-                        });
-                    }
-                });
-            }
+        if (snapshot.exists()) {
+            snapshot.forEach((childSnapshot) => {
+                const story = childSnapshot.val();
+                // Only show in featured if:
+                // 1. Story is older than 24 hours AND has contributions
+                // 2. Story is marked as completed
+                // 3. Matches category filter
+                if (story.createdAt <= oneDayAgo && 
+                    story.contributions && 
+                    Object.keys(story.contributions).length > 0 &&
+                    !seenPrompts.has(story.prompt) &&
+                    (category === 'all' || story.category === category)) {
+                    
+                    seenPrompts.add(story.prompt);
+                    stories.push({
+                        id: childSnapshot.key,
+                        ...story
+                    });
+                }
+            });
+        }
 
-            // Clear skeleton loaders
-            this.storiesGrid.innerHTML = '';
-            
-            // Add stories with staggered animation
-            stories.forEach((story, index) => {
+        this.storiesGrid.innerHTML = '';
+        stories
+            .sort((a, b) => b.createdAt - a.createdAt)
+            .forEach((story, index) => {
                 setTimeout(() => {
                     const storyCard = this.createStoryCard(story);
                     storyCard.classList.add('animate-in');
@@ -970,71 +1044,69 @@ class StoryManager {
                     this.storiesGrid.appendChild(storyCard);
                 }, index * 100);
             });
-        } catch (error) {
-            console.error('Error loading stories:', error);
-            this.storiesGrid.innerHTML = '<p class="error-message">Error loading stories. Please try again.</p>';
-        } finally {
-            this.loadingStories = false;
-        }
+    } catch (error) {
+        console.error('Error loading stories:', error);
+        this.storiesGrid.innerHTML = '<p class="error-message">Error loading stories. Please try again.</p>';
+    } finally {
+        this.loadingStories = false;
     }
+}
 
     async loadActiveStories() {
-        try {
-            const storiesRef = ref(database, 'stories');
-            const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000);
-            
-            const storiesSnapshot = await get(storiesRef);
-            
-            if (!storiesSnapshot.exists()) {
-                this.activeStoriesGrid.innerHTML = '<p class="no-stories">No active stories at the moment. Start writing!</p>';
-                return;
-            }
-
-            const activeStories = [];
-            const usedPrompts = new Set();
-
-            // Cleanup old or empty stories first
-            const cleanup = [];
-            
-            storiesSnapshot.forEach((childSnapshot) => {
-                const story = childSnapshot.val();
-                const storyId = childSnapshot.key;
-                
-                // Mark for cleanup if:
-                // 1. Story is older than 24 hours and has no participants
-                // 2. Story has no participants and no contributions
-                // 3. Story was created but never got any content
-                if ((story.createdAt < oneDayAgo && (!story.participants || Object.keys(story.participants).length === 0)) ||
-                    (!story.participants && !story.contributions) ||
-                    (story.createdAt < Date.now() - (30 * 60 * 1000) && !story.contributions)) {
-                    cleanup.push(remove(ref(database, `stories/${storyId}`)));
-                    return;
-                }
-
-                // Only include valid active stories
-                if (this.isValidActiveStory(story)) {
-                    const prompt = story.prompt || '';
-                    if (!usedPrompts.has(prompt)) {
-                        usedPrompts.add(prompt);
-                        activeStories.push({
-                            id: storyId,
-                            ...story
-                        });
-                    }
-                }
-            });
-
-            // Perform cleanup if needed
-            if (cleanup.length > 0) {
-                await Promise.all(cleanup);
-            }
-
-            this.activeStoriesGrid.innerHTML = activeStories.map(story => this.createActiveStoryCard(story)).join('');
-        } catch (error) {
-            console.error('Error loading active stories:', error);
-            this.activeStoriesGrid.innerHTML = '<p class="error-message">Error loading active stories. Please try again.</p>';
+    try {
+        const storiesRef = ref(database, 'stories');
+        const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000); // 24 hours ago
+        const snapshot = await get(storiesRef);
+        
+        if (!snapshot.exists()) {
+            this.activeStoriesGrid.innerHTML = '<p class="no-stories">No active stories at the moment. Start writing!</p>';
+            return;
         }
+
+        const activeStories = [];
+        const seenPrompts = new Set(); // To prevent duplicate prompts
+
+        snapshot.forEach((childSnapshot) => {
+            const story = childSnapshot.val();
+            const storyId = childSnapshot.key;
+            
+            // Only include stories that are:
+            // 1. Less than 24 hours old
+            // 2. Have either contributions or participants
+            if (story.createdAt > oneDayAgo) {
+                const hasContributions = story.contributions && Object.keys(story.contributions).length > 0;
+                const hasParticipants = story.participants && Object.keys(story.participants).length > 0;
+                
+                // Add to active stories if conditions met
+                if ((hasContributions || hasParticipants) && !seenPrompts.has(story.prompt)) {
+                    seenPrompts.add(story.prompt);
+                    activeStories.push({
+                        id: storyId,
+                        ...story
+                    });
+                }
+            } else {
+                // Story is older than 24 hours - move to featured if it has contributions
+                if (story.contributions && Object.keys(story.contributions).length > 0) {
+                    this.moveToFeatured(storyId, story);
+                } else {
+                    // Clean up old stories without contributions
+                    remove(ref(database, `stories/${storyId}`));
+                }
+            }
+        });
+
+        // Sort active stories by creation date (newest first)
+        this.activeStoriesGrid.innerHTML = activeStories
+            .sort((a, b) => b.createdAt - a.createdAt)
+            .map(story => this.createActiveStoryCard(story))
+            .join('');
+
+    } catch (error) {
+        console.error('Error loading active stories:', error);
+        this.activeStoriesGrid.innerHTML = '<p class="error-message">Error loading active stories. Please try again.</p>';
     }
+}
 
     isValidActiveStory(story) {
         const hasParticipants = story.participants && Object.keys(story.participants).length > 0;
@@ -1114,23 +1186,148 @@ generateTitleFromPrompt(prompt) {
     return title || 'Untitled Story';
 }
 
-    createStoryCard(story) {
-        const card = document.createElement('div');
-        card.className = 'story-card';
-        card.innerHTML = `
-            <div class="story-header">
-                <h3 class="story-title">${story.title || 'Untitled Story'}</h3>
-                <span class="story-category">${story.category || 'Uncategorized'}</span>
-            </div>
-            <p class="story-content">${this.getStoryPreview(story.contributions)}</p>
-            <div class="story-stats">
-                <span><i class="fas fa-user"></i> ${Object.keys(story.participants || {}).length} writers</span>
-                <span><i class="fas fa-heart"></i> ${Object.keys(story.likes || {}).length} likes</span>
-                <span><i class="fas fa-clock"></i> ${this.getTimeAgo(story.createdAt)}</span>
+createStoryCard(story) {
+    const card = document.createElement('div');
+    card.className = 'story-card';
+    card.onclick = () => this.viewFeaturedStory(story.id);  // Add click handler
+    card.innerHTML = `
+        <div class="story-header">
+            <h3 class="story-title">${story.title || this.generateTitleFromPrompt(story.prompt) || 'Untitled Story'}</h3>
+            <span class="story-category">${story.category || 'Creative'}</span>
+        </div>
+        <p class="story-content">${this.getStoryPreview(story.contributions)}</p>
+        <div class="story-stats">
+            <span><i class="fas fa-user"></i> ${Object.keys(story.participants || {}).length} writers</span>
+            <span><i class="fas fa-heart"></i> ${Object.keys(story.likes || {}).length} likes</span>
+            <span><i class="fas fa-clock"></i> ${this.getTimeAgo(story.createdAt)}</span>
+        </div>
+    `;
+    return card;
+}
+
+async viewFeaturedStory(storyId) {
+    try {
+        const storyRef = ref(database, `stories/${storyId}`);
+        const snapshot = await get(storyRef);
+        const story = snapshot.val();
+
+        if (!story) {
+            throw new Error('Story not found');
+        }
+
+        // Create full story text from contributions
+        const fullStory = this.createFullStory(story.contributions);
+
+        const modal = document.createElement('div');
+        modal.className = 'story-view-modal';
+        modal.innerHTML = `
+            <div class="story-view-content">
+                <div class="story-view-header">
+                    <h2>${story.title || this.generateTitleFromPrompt(story.prompt) || 'Untitled Story'}</h2>
+                    <div class="view-controls">
+                        <label class="view-toggle">
+                            <input type="checkbox" id="showContributions">
+                            <span>Show Contributions</span>
+                        </label>
+                        <button class="close-button" onclick="this.closest('.story-view-modal').remove()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="story-view-body">
+                    <div class="story-prompt">${story.prompt || ''}</div>
+                    <div class="story-content-wrapper">
+                        <div id="fullStoryView" class="full-story active">
+                            ${fullStory}
+                        </div>
+                        <div id="contributionsView" class="contributions-view">
+                            ${this.renderContributionsWithHighlights(story.contributions)}
+                        </div>
+                    </div>
+                </div>
             </div>
         `;
-        return card;
+
+        document.body.appendChild(modal);
+
+        // Add toggle functionality
+        const checkbox = modal.querySelector('#showContributions');
+        const fullStoryView = modal.querySelector('#fullStoryView');
+        const contributionsView = modal.querySelector('#contributionsView');
+
+        checkbox.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                fullStoryView.classList.remove('active');
+                contributionsView.classList.add('active');
+            } else {
+                fullStoryView.classList.add('active');
+                contributionsView.classList.remove('active');
+            }
+        });
+    } catch (error) {
+        console.error('Error viewing featured story:', error);
+        alert('Unable to load story. Please try again.');
     }
+}
+
+createFullStory(contributions) {
+    if (!contributions) return '';
+    
+    return Object.entries(contributions)
+        .sort(([, a], [, b]) => a.timestamp - b.timestamp)
+        .map(([, contribution]) => contribution.content)
+        .join(' ');
+}
+
+renderContributionsWithHighlights(contributions) {
+    if (!contributions) return '';
+
+    return Object.entries(contributions)
+        .sort(([, a], [, b]) => a.timestamp - b.timestamp)
+        .map(([id, contribution]) => `
+            <div class="contribution-highlight">
+                <div class="contribution-meta">
+                    <span class="author">${contribution.userName || 'Anonymous'}</span>
+                    <span class="timestamp">${this.getTimeAgo(contribution.timestamp)}</span>
+                </div>
+                <div class="highlighted-text" style="background-color: ${this.getHighlightColor(contribution.userName)}20">
+                    ${contribution.content}
+                </div>
+            </div>
+        `).join('');
+}
+
+getHighlightColor(userName) {
+    // Generate a consistent color based on username
+    let hash = 0;
+    for (let i = 0; i < userName.length; i++) {
+        hash = userName.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const hue = hash % 360;
+    return `hsl(${hue}, 70%, 50%)`;
+}
+
+renderContributions(contributions = {}) {
+    if (!contributions || Object.keys(contributions).length === 0) {
+        return '<p class="no-contributions">No contributions yet</p>';
+    }
+
+    return Object.entries(contributions)
+        .sort(([, a], [, b]) => a.timestamp - b.timestamp)
+        .map(([id, contribution]) => `
+            <div class="contribution">
+                <div class="contribution-header">
+                    <div class="author-info">
+                        <span class="author-name">${contribution.userName || 'Anonymous'}</span>
+                        <span class="timestamp">${this.getTimeAgo(contribution.timestamp)}</span>
+                    </div>
+                </div>
+                <div class="contribution-content">
+                    ${contribution.content}
+                </div>
+            </div>
+        `).join('');
+}
 
     getStoryPreview(contributions = {}) {
     if (!contributions || Object.keys(contributions).length === 0) return '';
@@ -1145,28 +1342,51 @@ generateTitleFromPrompt(prompt) {
         firstContribution;
 }
 
-    getTimeAgo(timestamp) {
-        if (!timestamp) return 'just now';
-        const seconds = Math.floor((Date.now() - timestamp) / 1000);
-        
-        const intervals = {
-            year: 31536000,
-            month: 2592000,
-            week: 604800,
-            day: 86400,
-            hour: 3600,
-            minute: 60,
-            second: 1
-        };
+getTimeAgo(timestamp) {
+    if (!timestamp) return 'just now';
+    
+    // Convert Firebase timestamp to number if needed
+    const timeMs = timestamp?.toMillis?.() || timestamp;
+    const seconds = Math.floor((Date.now() - timeMs) / 1000);
+    
+    // Define time intervals in seconds
+    const intervals = {
+        year: 31536000,
+        month: 2592000,
+        week: 604800,
+        day: 86400,
+        hour: 3600,
+        minute: 60
+    };
 
-        for (const [unit, secondsInUnit] of Object.entries(intervals)) {
-            const interval = Math.floor(seconds / secondsInUnit);
-            if (interval >= 1) {
-                return interval === 1 ? `1 ${unit} ago` : `${interval} ${unit}s ago`;
-            }
-        }
+    // For very recent times (less than 1 minute)
+    if (seconds < 60) {
         return 'just now';
     }
+    
+    // For times within the last 24 hours, show hours/minutes
+    if (seconds < 86400) {
+        for (const [unit, secondsInUnit] of Object.entries({ hour: 3600, minute: 60 })) {
+            const interval = Math.floor(seconds / secondsInUnit);
+            if (interval >= 1) {
+                return `${interval} ${unit}${interval === 1 ? '' : 's'} ago`;
+            }
+        }
+    }
+    
+    // For times over 24 hours, show the actual date
+    const date = new Date(timeMs);
+    const now = new Date();
+    const isThisYear = date.getFullYear() === now.getFullYear();
+    
+    const options = {
+        month: 'short',
+        day: 'numeric',
+        ...(isThisYear ? {} : { year: 'numeric' })
+    };
+    
+    return date.toLocaleDateString('en-US', options);
+}
 }
 
 // Add to window object

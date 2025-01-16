@@ -868,6 +868,93 @@ class StoryFlowManager {
         this.collaborationManager = null;
     }
 
+    async initialize() {
+        try {
+            // Check if this is a new story or joining existing
+            const isNewStory = localStorage.getItem('isNewStory') === 'true';
+            
+            if (isNewStory) {
+                const story = await this.createNewStory();
+                appState.update({ currentStoryId: story.id });
+                
+                // Start with brainstorm phase for new story
+                this.currentPhase = 'brainstorm';
+                const promptBanner = document.querySelector('.prompt-banner');
+                if (promptBanner) {
+                    promptBanner.textContent = story.prompt;
+                }
+            } else {
+                // Get existing story ID
+                const storyId = localStorage.getItem('storyId');
+                if (!storyId) throw new Error('No story ID found');
+                
+                appState.update({ currentStoryId: storyId });
+                
+                // Get story data
+                const storyRef = ref(database, `stories/${storyId}`);
+                const snapshot = await get(storyRef);
+                const story = snapshot.val();
+                
+                if (!story) throw new Error('Story not found');
+                
+                // Show prompt
+                const promptBanner = document.querySelector('.prompt-banner');
+                if (promptBanner) {
+                    promptBanner.textContent = story.prompt;
+                }
+                
+                // Start with reading phase for existing story
+                this.currentPhase = 'reading';
+            }
+            
+            // Initialize timer and start first phase
+            await this.startTimer();
+            
+            // Initialize collaboration manager
+            this.collaborationManager = new CollaborationManager(
+                appState.currentStoryId, 
+                database, 
+                appState.currentUser
+            );
+            this.collaborationManager.initialize();
+            
+        } catch (error) {
+            console.error('Error initializing story flow:', error);
+            ErrorHandler.handleError(error, 'story_flow_initialization');
+        }
+    }
+
+    async startPhase(phase) {
+    this.currentPhase = phase;
+    const message = document.querySelector('.message');
+    const writingArea = document.querySelector('.writing-area');
+    const storyPreview = document.querySelector('.story-preview');
+    
+    // Update UI based on phase
+    if (phase === 'brainstorm') {
+        if (message) message.textContent = 'Take a moment to gather your thoughts...';
+        if (writingArea) writingArea.style.display = 'none';
+        if (storyPreview) storyPreview.style.display = 'none';
+    } else if (phase === 'writing') {
+        if (message) message.textContent = 'Start writing your contribution...';
+        if (writingArea) {
+            writingArea.style.display = 'block';
+            writingArea.focus();
+        }
+        if (storyPreview) storyPreview.style.display = 'none';
+    } else if (phase === 'reading') {
+        if (message) message.textContent = 'Take a moment to read what others have written...';
+        if (writingArea) writingArea.style.display = 'none';
+        if (storyPreview) {
+            storyPreview.style.display = 'block';
+            await this.updateStoryPreview();
+        }
+    }
+    
+    // Start timer
+    await this.startTimer();
+}
+
     async startTimer() {
         await this.timer.start(this.storyId, 45, () => this.handlePhaseTransition());
     }
@@ -877,6 +964,26 @@ class StoryFlowManager {
             this.timer.stop();
         }
     }
+
+    async updateStoryPreview() {
+    try {
+        const storyRef = ref(database, `stories/${this.storyId}`);
+        const snapshot = await get(storyRef);
+        const story = snapshot.val();
+        
+        if (story && story.contributions) {
+            const preview = document.querySelector('.story-preview');
+            if (preview) {
+                preview.innerHTML = Object.values(story.contributions)
+                    .sort((a, b) => a.timestamp - b.timestamp)
+                    .map(contribution => contribution.content)
+                    .join('\n\n');
+            }
+        }
+    } catch (error) {
+        console.error('Error updating story preview:', error);
+    }
+}
 
     async createNewStory() {
         try {
