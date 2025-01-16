@@ -473,57 +473,11 @@
     box-shadow: none;
 }
 
-.story-view-modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.75);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 2rem;
-    z-index: 1000;
-    overflow-y: auto; /* Allow modal itself to scroll */
-}
-
-.story-view-content {
-    background: var(--card-bg);
-    border-radius: 12px;
-    width: 100%;
-    max-width: 800px;
-    margin: 2rem;
-    overflow: hidden;
-}
-
-.story-view-header {
-    background: linear-gradient(135deg, var(--primary), var(--secondary));
-    padding: 1.5rem;
-    color: white;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
 
 .view-controls {
     display: flex;
     align-items: center;
     gap: 1rem;
-}
-
-.view-toggle {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    color: white;
-    cursor: pointer;
-}
-
-.story-view-body {
-    padding: 2rem;
-    overflow-y: auto; /* Allow content to scroll */
-    max-height: calc(90vh - 80px); /* Account for header height */
 }
 
 .modal-header h2 {
@@ -576,33 +530,10 @@
     box-shadow: var(--card-shadow);
 }
 
-    .story-view-modal {
-    padding: 2rem;
-}
+    
     
 
-.story-view-content {
-    background: white;
-    border-radius: 12px;
-    width: 100%;
-    max-width: 800px;
-    margin: 0 auto;
-    overflow: hidden;
-}
-    
 
-.story-view-header {
-    background: linear-gradient(135deg, var(--primary), var(--secondary));
-    color: white;
-    padding: 1.5rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.story-view-body {
-    padding: 2rem;
-}
 
 .story-entry {
     background: white;
@@ -619,10 +550,6 @@
     margin-bottom: 1rem;
 }
 
-.author {
-    font-weight: 500;
-    color: var(--primary);
-}
 
 .author-avatar {
     width: 40px;
@@ -655,50 +582,14 @@
     opacity: 1;
 }
 
-.full-story {
-    line-height: 1.8;
-    font-size: 1.1rem;
-    color: var(--text);
-}
 
-.contribution-highlight {
-    margin-bottom: 1.5rem;
-    padding: 1rem;
-    border-radius: 8px;
-}
-
-.contribution-meta {
-    display: flex;
-    gap: 1rem;
-    margin-bottom: 0.5rem;
-    font-size: 0.9rem;
-}
-
-.highlighted-text {
-    padding: 1rem;
-    border-radius: 4px;
-    line-height: 1.8;
-    font-size: 1.1rem;
-}
 
 .author-name {
     font-weight: 500;
     color: var(--text);
 }
 
-.timestamp {
-    color: var(--secondary);
-}
 
-.story-prompt {
-    background: linear-gradient(135deg, var(--primary), var(--secondary));
-    color: white;
-    padding: 1.5rem;
-    border-radius: 8px;
-    margin-bottom: 2rem;
-    font-size: 1.2rem;
-    text-align: center;
-}
 
 .close-button {
     background: none;
@@ -728,10 +619,7 @@
         gap: 0.5rem;
     }
 
-    .timestamp {
-        color: var(--secondary);
-        font-size: 0.9rem;
-    }
+
 
     .contribution-content {
     font-size: 1.1rem;
@@ -785,14 +673,41 @@
     transition: all 0.2s;
 }
 
+.empty-stories-state {
+    text-align: center;
+    padding: 3rem;
+    background: var(--card-bg);
+    border-radius: 12px;
+    box-shadow: var(--card-shadow);
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: background-color var(--transition-speed),
+                box-shadow var(--transition-speed);
+}
+
+.empty-stories-state h3 {
+    color: var(--text);
+    font-size: 1.2rem;
+    transition: color var(--transition-speed);
+}
+
+.empty-stories-state p {
+    color: var(--secondary);
+    transition: color var(--transition-speed);
+}
+
+.empty-stories-state .button {
+    margin-top: 1rem;
+}
+
 .join-story-btn:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 
-.story-view-modal {
-    background: rgba(0, 0, 0, 0.75); /* Darker overlay */
-}
+
 
 .story-entry {
     background: var(--card-bg);
@@ -804,10 +719,6 @@
     transform: translateY(-2px);
 }
 
-.story-prompt {
-    margin-bottom: 2rem;
-    font-weight: 500;
-}
 
 .join-story-btn:disabled {
     background: var(--border);
@@ -1052,14 +963,24 @@ class StoryManager {
     }
 }
 
-    async loadActiveStories() {
+async loadActiveStories() {
     try {
         const storiesRef = ref(database, 'stories');
         const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000); // 24 hours ago
         const snapshot = await get(storiesRef);
         
         if (!snapshot.exists()) {
-            this.activeStoriesGrid.innerHTML = '<p class="no-stories">No active stories at the moment. Start writing!</p>';
+            this.activeStoriesGrid.innerHTML = `
+                <div class="empty-stories-state">
+                    <i class="fas fa-pen-fancy" style="font-size: 2rem; color: var(--secondary); margin-bottom: 1rem;"></i>
+                    <h3 style="margin-bottom: 0.5rem;">No Active Stories</h3>
+                    <p style="color: var(--secondary); margin-bottom: 1rem;">Be the first to start a new story!</p>
+                    <button class="button button-primary" onclick="window.startNewStory()">
+                        <i class="fas fa-plus"></i>
+                        Begin Writing
+                    </button>
+                </div>
+            `;
             return;
         }
 
@@ -1070,14 +991,10 @@ class StoryManager {
             const story = childSnapshot.val();
             const storyId = childSnapshot.key;
             
-            // Only include stories that are:
-            // 1. Less than 24 hours old
-            // 2. Have either contributions or participants
             if (story.createdAt > oneDayAgo) {
                 const hasContributions = story.contributions && Object.keys(story.contributions).length > 0;
                 const hasParticipants = story.participants && Object.keys(story.participants).length > 0;
                 
-                // Add to active stories if conditions met
                 if ((hasContributions || hasParticipants) && !seenPrompts.has(story.prompt)) {
                     seenPrompts.add(story.prompt);
                     activeStories.push({
@@ -1086,17 +1003,31 @@ class StoryManager {
                     });
                 }
             } else {
-                // Story is older than 24 hours - move to featured if it has contributions
                 if (story.contributions && Object.keys(story.contributions).length > 0) {
                     this.moveToFeatured(storyId, story);
                 } else {
-                    // Clean up old stories without contributions
                     remove(ref(database, `stories/${storyId}`));
                 }
             }
         });
 
-        // Sort active stories by creation date (newest first)
+        // If no active stories were found
+        if (activeStories.length === 0) {
+            this.activeStoriesGrid.innerHTML = `
+                <div class="empty-stories-state">
+                    <i class="fas fa-pen-fancy" style="font-size: 2rem; color: var(--secondary); margin-bottom: 1rem;"></i>
+                    <h3 style="margin-bottom: 0.5rem;">No Active Stories</h3>
+                    <p style="color: var(--secondary); margin-bottom: 1rem;">Be the first to start a new story!</p>
+                    <button class="button button-primary" onclick="window.startNewStory()">
+                        <i class="fas fa-plus"></i>
+                        Begin Writing
+                    </button>
+                </div>
+            `;
+            return;
+        }
+
+        // Sort and display active stories
         this.activeStoriesGrid.innerHTML = activeStories
             .sort((a, b) => b.createdAt - a.createdAt)
             .map(story => this.createActiveStoryCard(story))
@@ -1205,6 +1136,7 @@ createStoryCard(story) {
     return card;
 }
 
+// Update the viewFeaturedStory method in StoryManager class
 async viewFeaturedStory(storyId) {
     try {
         const storyRef = ref(database, `stories/${storyId}`);
@@ -1215,19 +1147,23 @@ async viewFeaturedStory(storyId) {
             throw new Error('Story not found');
         }
 
-        // Create full story text from contributions
-        const fullStory = this.createFullStory(story.contributions);
-
         const modal = document.createElement('div');
         modal.className = 'story-view-modal';
         modal.innerHTML = `
             <div class="story-view-content">
                 <div class="story-view-header">
-                    <h2>${story.title || this.generateTitleFromPrompt(story.prompt) || 'Untitled Story'}</h2>
+                    <div class="header-content">
+                        <h2>${story.title || this.generateTitleFromPrompt(story.prompt) || 'Untitled Story'}</h2>
+                        <div class="story-meta">
+                            <span><i class="fas fa-users"></i> ${Object.keys(story.participants || {}).length} writers</span>
+                            <span><i class="fas fa-heart"></i> ${Object.keys(story.likes || {}).length} likes</span>
+                            <span><i class="fas fa-clock"></i> ${this.getTimeAgo(story.createdAt)}</span>
+                        </div>
+                    </div>
                     <div class="view-controls">
                         <label class="view-toggle">
                             <input type="checkbox" id="showContributions">
-                            <span>Show Contributions</span>
+                            <span><i class="fas fa-list-ul"></i> Show Contributions</span>
                         </label>
                         <button class="close-button" onclick="this.closest('.story-view-modal').remove()">
                             <i class="fas fa-times"></i>
@@ -1235,10 +1171,14 @@ async viewFeaturedStory(storyId) {
                     </div>
                 </div>
                 <div class="story-view-body">
-                    <div class="story-prompt">${story.prompt || ''}</div>
+                    <div class="story-prompt">
+                        <i class="fas fa-quote-left"></i>
+                        <p>${story.prompt || ''}</p>
+                        <i class="fas fa-quote-right"></i>
+                    </div>
                     <div class="story-content-wrapper">
                         <div id="fullStoryView" class="full-story active">
-                            ${fullStory}
+                            ${this.createFullStory(story.contributions)}
                         </div>
                         <div id="contributionsView" class="contributions-view">
                             ${this.renderContributionsWithHighlights(story.contributions)}
@@ -1250,7 +1190,169 @@ async viewFeaturedStory(storyId) {
 
         document.body.appendChild(modal);
 
-        // Add toggle functionality
+        // Add these styles to your CSS
+        const styles = `
+            .story-view-modal {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.85);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 2rem;
+                z-index: 1000;
+                overflow-y: auto;
+                backdrop-filter: blur(5px);
+            }
+
+            .story-view-content {
+                background: var(--card-bg);
+                border-radius: 16px;
+                width: 100%;
+                max-width: 800px;
+                margin: auto;
+                overflow: hidden;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            }
+
+            .story-view-header {
+                background: linear-gradient(135deg, var(--primary), var(--secondary));
+                padding: 2rem;
+                color: white;
+            }
+
+            .header-content {
+                margin-bottom: 1rem;
+            }
+
+            .header-content h2 {
+                font-size: 1.8rem;
+                margin-bottom: 0.5rem;
+                font-weight: 600;
+            }
+
+            .story-meta {
+                display: flex;
+                gap: 1.5rem;
+                font-size: 0.9rem;
+                opacity: 0.9;
+            }
+
+            .story-meta span {
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+
+            .story-prompt {
+                background: linear-gradient(135deg, rgba(65, 105, 225, 0.1), rgba(124, 58, 237, 0.1));
+                padding: 2rem;
+                border-radius: 12px;
+                margin-bottom: 2rem;
+                position: relative;
+                text-align: center;
+            }
+
+            .story-prompt i {
+                font-size: 1.5rem;
+                color: var(--primary);
+                opacity: 0.5;
+            }
+
+            .story-prompt p {
+                font-size: 1.2rem;
+                line-height: 1.6;
+                margin: 1rem 0;
+                color: var(--text);
+                font-style: italic;
+            }
+
+            .story-view-body {
+                padding: 2rem;
+            }
+
+            .full-story {
+                line-height: 1.8;
+                font-size: 1.1rem;
+                color: var(--text);
+                padding: 1rem;
+                background: var(--card-bg);
+                border-radius: 12px;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            }
+
+            .view-toggle {
+                background: rgba(255, 255, 255, 0.2);
+                padding: 0.5rem 1rem;
+                border-radius: 20px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                transition: all 0.2s;
+            }
+
+            .view-toggle:hover {
+                background: rgba(255, 255, 255, 0.3);
+            }
+
+            .view-toggle input {
+                margin-right: 0.5rem;
+            }
+
+            .contribution-highlight {
+                background: var(--card-bg);
+                border-radius: 12px;
+                padding: 1.5rem;
+                margin-bottom: 1rem;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+                transition: transform 0.2s;
+            }
+
+            .contribution-highlight:hover {
+                transform: translateY(-2px);
+            }
+
+            .contribution-meta {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 1rem;
+                padding-bottom: 0.5rem;
+                border-bottom: 1px solid var(--border);
+            }
+
+            .author {
+                font-weight: 500;
+                color: var(--primary);
+            }
+
+            .timestamp {
+                color: var(--secondary);
+                font-size: 0.9rem;
+            }
+
+            .highlighted-text {
+                line-height: 1.8;
+                font-size: 1.1rem;
+                color: var(--text);
+                padding: 1rem;
+                border-radius: 8px;
+            }
+        `;
+
+        // Add styles if not already present
+        if (!document.querySelector('#story-view-styles')) {
+            const styleSheet = document.createElement('style');
+            styleSheet.id = 'story-view-styles';
+            styleSheet.textContent = styles;
+            document.head.appendChild(styleSheet);
+        }
+
+        // Toggle functionality
         const checkbox = modal.querySelector('#showContributions');
         const fullStoryView = modal.querySelector('#fullStoryView');
         const contributionsView = modal.querySelector('#contributionsView');
@@ -1529,43 +1631,56 @@ class LandingPageHandler {
     }
 
     async handleStartWriting() {
-        try {
-            if (!currentUser) {
-                window.location.href = 'index.html';
-                return;
-            }
-
-            const storySession = await this.createOrJoinStorySession(currentUser.uid);
-            localStorage.setItem('currentStoryId', storySession.id);
-            window.location.href = 'write.html';
-        } catch (error) {
-            console.error('Error starting writing session:', error);
-            alert('Unable to start writing session. Please try again.');
+    try {
+        if (!currentUser) {
+            window.location.href = 'index.html';
+            return;
         }
-    }
 
-    async createOrJoinStorySession(userId) {
-        const activeStoriesRef = ref(database, 'activeStories');
-        const snapshot = await get(activeStoriesRef);
+        const storiesRef = ref(database, 'stories');
+        const newStoryRef = push(storiesRef);
+
+        const storyData = {
+            createdAt: serverTimestamp(),
+            status: 'active',
+            creator: {
+                uid: currentUser.uid,
+                displayName: currentUser.displayName,
+                photoURL: currentUser.photoURL,
+            },
+            currentMood: 'creative', // Default mood
+            prompt: this.generateRandomPrompt(),
+            contributions: {},
+            participants: {
+                [currentUser.uid]: {
+                    joinedAt: serverTimestamp(),
+                    isActive: true,
+                    displayName: currentUser.displayName,
+                    photoURL: currentUser.photoURL,
+                },
+            },
+        };
+
+        await set(newStoryRef, storyData);
         
-        if (snapshot.exists()) {
-            const activeStories = snapshot.val();
-            for (const [storyId, story] of Object.entries(activeStories)) {
-                if (story.participantCount < 5) {
-                    await set(ref(database, `stories/${storyId}/participants/${userId}`), {
-                        joinedAt: serverTimestamp(),
-                        lastActive: serverTimestamp()
-                    });
+        // Store story ID and set new story flag
+        localStorage.setItem('storyId', newStoryRef.key);
+        localStorage.setItem('isNewStory', 'true');
 
-                    await set(ref(database, `activeStories/${storyId}/participantCount`), story.participantCount + 1);
-
-                    return { id: storyId, ...story };
-                }
-            }
-        }
-
-        return await this.createNewStorySession(userId);
+        // Redirect to writing page
+        window.location.href = 'write.html';
+    } catch (error) {
+        console.error('Error starting writing session:', error);
+        alert('Unable to start writing session. Please try again.');
     }
+}
+
+generateRandomPrompt() {
+    const moods = ['creative', 'mysterious', 'adventure', 'romantic', 'sci-fi'];
+    const randomMood = moods[Math.floor(Math.random() * moods.length)];
+    const prompts = defaultPrompts[randomMood];
+    return prompts[Math.floor(Math.random() * prompts.length)];
+}
 
     async createNewStorySession(userId) {
     const storiesRef = ref(database, 'stories');
